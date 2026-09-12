@@ -50,3 +50,11 @@ export const DISCONNECTED_PLAYER_GRACE_PERIOD_MS = 30 * 60 * 1000; // 30 minutes
 export const CHAT_LOG_MAX_MESSAGES = 200;
 
 export const SESSION_TOKEN_TTL_MS = 12 * 60 * 60 * 1000; // 12 hours
+
+// Phase 2 vertical slice: one city, one resource (agriculture -> grain).
+// Formulas are placeholders for proving out the turn-engine architecture;
+// real balancing happens when Phase 3 implements all internal-affairs domains.
+export const ACTION_POINTS_PER_TURN = 10;
+export const STARTING_GRAIN_STOCK = 100;
+export const GRAIN_BASE_PRODUCTION_PER_TURN = 20;
+export const GRAIN_PRODUCTION_PER_AGRICULTURE_POINT = 5;

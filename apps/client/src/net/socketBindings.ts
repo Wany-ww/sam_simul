@@ -1,6 +1,7 @@
 import type { NavigateFunction } from 'react-router-dom';
 import { getSocket } from './socket';
 import { useRoomStore } from '../state/roomStore';
+import { useGameStore } from '../state/gameStore';
 import { setLastRoomId } from '../state/identityStore';
 
 // Registers the permanent listeners that mirror server-pushed state into the
@@ -53,5 +54,10 @@ export function bindSocketEvents(navigate: NavigateFunction): void {
   socket.off('room:error');
   socket.on('room:error', (error) => {
     useRoomStore.getState().setError(error);
+  });
+
+  socket.off('game:state');
+  socket.on('game:state', (state) => {
+    useGameStore.getState().setGameState(state);
   });
 }

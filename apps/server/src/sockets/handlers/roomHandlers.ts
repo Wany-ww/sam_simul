@@ -2,6 +2,7 @@ import type { RoomErrorCode } from '@sam-simul/shared';
 import { sessionStore } from '../../domain/session/SessionStore.js';
 import { RoomError } from '../../domain/room/RoomError.js';
 import type { RoomManager } from '../../domain/room/RoomManager.js';
+import type { GameSessionManager } from '../../domain/game/GameSessionManager.js';
 import type { AppServer, AppSocket } from '../types.js';
 
 const LOBBY_CHANNEL = 'lobby';
@@ -18,7 +19,7 @@ function displayNameFor(playerId: string): string {
   return sessionStore.getIdentity(playerId)?.displayName ?? '익명';
 }
 
-export function registerRoomHandlers(io: AppServer, socket: AppSocket, roomManager: RoomManager): void {
+export function registerRoomHandlers(io: AppServer, socket: AppSocket, roomManager: RoomManager, gameSessionManager: GameSessionManager): void {
   socket.join(LOBBY_CHANNEL);
 
   socket.on('room:list', () => {
@@ -76,6 +77,8 @@ export function registerRoomHandlers(io: AppServer, socket: AppSocket, roomManag
         if (newHostPlayerId) {
           io.to(room.roomId).emit('room:hostChanged', { newHostPlayerId });
         }
+      } else {
+        gameSessionManager.endGame(roomId);
       }
       broadcastLobbyList(io, roomManager);
     } catch (err) {
@@ -97,6 +100,7 @@ export function registerRoomHandlers(io: AppServer, socket: AppSocket, roomManag
     try {
       const room = roomManager.startRoom({ roomId, playerId: socket.data.playerId });
       io.to(room.roomId).emit('room:state', room);
+      gameSessionManager.startGame(room);
       io.to(room.roomId).emit('room:started', { roomId: room.roomId });
       broadcastLobbyList(io, roomManager);
     } catch (err) {

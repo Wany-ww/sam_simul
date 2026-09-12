@@ -1,6 +1,7 @@
 import type { ChatMessage } from '../types/chat.js';
 import type { PlayerId } from '../types/session.js';
 import type { ConnectionStatus, Room, RoomId, RoomSettings, RoomSummary } from '../types/room.js';
+import type { GameState, PlayerOrder } from '../types/game.js';
 
 export type RoomErrorCode =
   | 'ROOM_NOT_FOUND'
@@ -28,6 +29,7 @@ export interface ClientToServerEvents {
   'room:updateSettings': (payload: { roomId: RoomId; settings: Partial<RoomSettings> }) => void;
   'room:chat': (payload: { roomId: RoomId; text: string }) => void;
   'room:start': (payload: { roomId: RoomId }) => void;
+  'game:submitOrder': (payload: { roomId: RoomId; order: PlayerOrder }) => void;
 }
 
 // Server -> Client
@@ -39,6 +41,7 @@ export interface ServerToClientEvents {
   'room:chatMessage': (message: ChatMessage) => void;
   'room:started': (payload: { roomId: RoomId }) => void;
   'room:error': (payload: RoomErrorPayload) => void;
+  'game:state': (state: GameState) => void;
 }
 
 export interface SocketAuthPayload {
