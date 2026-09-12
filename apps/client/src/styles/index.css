@@ -47,6 +47,16 @@ h2 {
   color: var(--accent);
 }
 
+h3 {
+  font-size: 0.9rem;
+  margin: 16px 0 8px;
+  color: var(--muted);
+}
+
+h3:first-of-type {
+  margin-top: 4px;
+}
+
 .card {
   background: var(--panel);
   border: 1px solid var(--border);
@@ -155,6 +165,19 @@ button:disabled {
 
 @media (max-width: 800px) {
   .room-body {
+    grid-template-columns: 1fr;
+  }
+}
+
+.game-body {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  align-items: start;
+}
+
+@media (max-width: 800px) {
+  .game-body {
     grid-template-columns: 1fr;
   }
 }

@@ -1,7 +1,13 @@
-import type { GameCity, GameState, PlayerId, PlayerOrder, Room, RoomId } from '@sam-simul/shared';
-import { ACTION_POINTS_PER_TURN, STARTING_GRAIN_STOCK } from '@sam-simul/shared';
+import type { GameCity, GameState, PlayerId, PlayerOrder, Room, RoomId, Warehouse } from '@sam-simul/shared';
+import { ACTION_POINTS_PER_TURN, GRAIN_RESOURCES, STARTING_GOLD, STARTING_GRAIN_PER_TYPE, STARTING_POPULATION } from '@sam-simul/shared';
 import { resolveTurn } from './GameEngine.js';
 import type { AppServer } from '../../sockets/types.js';
+
+function startingWarehouse(): Warehouse {
+  const warehouse: Warehouse = { gold: STARTING_GOLD };
+  for (const grain of GRAIN_RESOURCES) warehouse[grain] = STARTING_GRAIN_PER_TYPE;
+  return warehouse;
+}
 
 interface GameSession {
   state: GameState;
@@ -24,8 +30,15 @@ export class GameSessionManager {
       cityId: `${player.playerId}-city1`,
       ownerId: player.playerId,
       name: `${player.displayName}의 도시`,
-      agricultureLevel: 0,
-      grainStock: STARTING_GRAIN_STOCK,
+      population: STARTING_POPULATION,
+      facilities: {
+        agriculture: 0,
+        animalHusbandry: 0,
+        commerce: { tradingPost: 0, taxOffice: 0, market: 0 },
+        industry: { armory: 0, weaponsWorkshop: 0, blacksmith: 0, publicWorks: 0 },
+      },
+      warehouse: startingWarehouse(),
+      troops: [],
     }));
 
     const state: GameState = {
