@@ -189,3 +189,11 @@ export const GENERAL_APPEARANCE_CHANCE_MAX = 0.5;
 
 export const ASSIGN_GENERAL_ORDER_POINT_COST = 1;
 export const UNASSIGN_GENERAL_ORDER_POINT_COST = 0; // freeing a general back up costs nothing
+
+// Phase 7: events & disasters. Rolled per city per turn (not globally per
+// room), resolving the roadmap's targeting question in favor of the same
+// per-city granularity population growth and general appearance already use.
+// DISASTER_FREQUENCY_PER_TURN_PROBABILITY and EVENT_PROBABILITY_PER_TURN_PROBABILITY
+// (the room-setting tiers) are defined above.
+export const EVENT_PROBABILITY_BONUS_PER_TRADING_POST_LEVEL = 0.01; // resolves "does Trading Post add to or replace the base chance" -- it adds
+export const MIN_EFFECT_PRODUCTION_MULTIPLIER = 0.1; // floor so stacked disasters never zero out or invert production

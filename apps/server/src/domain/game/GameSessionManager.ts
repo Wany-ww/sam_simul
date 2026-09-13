@@ -1,6 +1,8 @@
 import type { GameCity, GameState, PlayerId, PlayerOrder, Room, RoomId, Warehouse } from '@sam-simul/shared';
 import {
   ACTION_POINTS_PER_TURN,
+  DISASTER_FREQUENCY_PER_TURN_PROBABILITY,
+  EVENT_PROBABILITY_PER_TURN_PROBABILITY,
   GENERAL_APPEARANCE_BASE_PROBABILITY,
   GRAIN_RESOURCES,
   MAP_SIZE_TRAVEL_DAY_MULTIPLIER,
@@ -26,6 +28,8 @@ interface GameSession {
   turnTimeLimitSeconds: number;
   mapSizeMultiplier: number;
   generalAppearanceBaseChance: number;
+  disasterBaseChance: number;
+  eventBaseChance: number;
   timer: NodeJS.Timeout;
 }
 
@@ -56,6 +60,7 @@ export class GameSessionManager {
       garrisonMorale: STARTING_MORALE,
       wallDurability: MAX_WALL_DURABILITY,
       generals: [],
+      activeEffects: [],
     }));
 
     const state: GameState = {
@@ -75,6 +80,8 @@ export class GameSessionManager {
       turnTimeLimitSeconds: room.settings.turnTimeLimitSeconds,
       mapSizeMultiplier: MAP_SIZE_TRAVEL_DAY_MULTIPLIER[room.settings.mapSize],
       generalAppearanceBaseChance: GENERAL_APPEARANCE_BASE_PROBABILITY[room.settings.generalAppearanceProbability],
+      disasterBaseChance: DISASTER_FREQUENCY_PER_TURN_PROBABILITY[room.settings.disasterFrequency],
+      eventBaseChance: EVENT_PROBABILITY_PER_TURN_PROBABILITY[room.settings.eventProbability],
       timer: this.scheduleResolution(room.roomId, room.settings.turnTimeLimitSeconds),
     });
 
@@ -121,6 +128,8 @@ export class GameSessionManager {
       `${roomId}:${session.state.turnNumber}`,
       session.mapSizeMultiplier,
       session.generalAppearanceBaseChance,
+      session.disasterBaseChance,
+      session.eventBaseChance,
     );
 
     session.state = { ...nextState, turnEndsAt: Date.now() + session.turnTimeLimitSeconds * 1000 };

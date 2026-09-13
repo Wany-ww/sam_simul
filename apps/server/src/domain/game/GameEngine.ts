@@ -9,6 +9,7 @@ import { resolveBattlesForTurn } from './battleOrchestration.js';
 import type { ArmyGeneralEffect } from './generals.js';
 import { applyGeneralAssignment, applyGeneralUnassignment, computeGeneralEffects, rollGeneralAppearance } from './generals.js';
 import type { GarrisonEffect } from './battleOrchestration.js';
+import { computeEffectMultipliers, instantiateEffect, rollDisaster, rollEvent, tickActiveEffects } from './events.js';
 import { clampOrderToBudget } from './orderBudget.js';
 
 export interface ResolveTurnResult {
@@ -43,6 +44,8 @@ export function resolveTurn(
   rngSeed: string,
   mapSizeMultiplier: number,
   generalAppearanceBaseChance: number,
+  disasterBaseChance: number,
+  eventBaseChance: number,
 ): ResolveTurnResult {
   const rng = createSeededRng(rngSeed);
   const log: TurnLogEntry[] = [];
@@ -92,15 +95,30 @@ export function resolveTurn(
     garrisonEffectsByOwner.set(city.ownerId, generalEffects.garrison);
     for (const [armyId, effect] of generalEffects.perArmy) armyEffectsAll.set(armyId, effect);
 
+    const { active: agedEffects, expired: expiredEffects } = tickActiveEffects(city.activeEffects);
+    for (const effect of expiredEffects) notes.push(`${effect.name} 효과가 종료되었습니다.`);
+
+    const disaster = rollDisaster(rng, disasterBaseChance);
+    if (disaster) notes.push(disaster.description);
+
+    const event = rollEvent(rng, eventBaseChance, nextFacilities.commerce.tradingPost);
+    if (event) notes.push(event.description);
+
+    const activeEffects = [...agedEffects, ...(disaster ? [instantiateEffect(disaster)] : []), ...(event ? [instantiateEffect(event)] : [])];
+    const effectMultipliers = computeEffectMultipliers(activeEffects);
+
     const cityWithNewFacilities: GameCity = { ...city, facilities: nextFacilities };
     const populationMultiplier = populationProductionMultiplier(city.population);
     const horseProductionMultiplier = REGIONS[getMapNode(city.nodeId)?.region ?? 'siLi']?.horseProductionMultiplier ?? 1;
 
     const produced = mergeWarehouses(
-      scaleWarehouse(calculateAgricultureOutput(cityWithNewFacilities, populationMultiplier), generalEffects.facilityMultiplier.agriculture),
-      scaleWarehouse(calculateHusbandryOutput(cityWithNewFacilities, populationMultiplier, horseProductionMultiplier), generalEffects.facilityMultiplier.animalHusbandry),
-      scaleWarehouse(calculateCommerceOutput(cityWithNewFacilities), generalEffects.facilityMultiplier.commerce),
-      scaleWarehouse(calculateIndustryOutput(cityWithNewFacilities), generalEffects.facilityMultiplier.industry),
+      scaleWarehouse(calculateAgricultureOutput(cityWithNewFacilities, populationMultiplier), generalEffects.facilityMultiplier.agriculture * effectMultipliers.agriculture),
+      scaleWarehouse(
+        calculateHusbandryOutput(cityWithNewFacilities, populationMultiplier, horseProductionMultiplier),
+        generalEffects.facilityMultiplier.animalHusbandry * effectMultipliers.animalHusbandry,
+      ),
+      scaleWarehouse(calculateCommerceOutput(cityWithNewFacilities), generalEffects.facilityMultiplier.commerce * effectMultipliers.commerce),
+      scaleWarehouse(calculateIndustryOutput(cityWithNewFacilities), generalEffects.facilityMultiplier.industry * effectMultipliers.industry),
     );
 
     let warehouse = applyProduction(city.warehouse, produced);
@@ -179,6 +197,7 @@ export function resolveTurn(
       warehouse: roundWarehouse(warehouse),
       troops,
       generals,
+      activeEffects,
     };
   });
 

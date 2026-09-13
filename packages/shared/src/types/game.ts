@@ -2,6 +2,7 @@ import type { PlayerId } from './session.js';
 import type { RoomId } from './room.js';
 import type { Army, ArmyStanceOrder, FortifyOrder, MapNodeId, MarchOrder } from './map.js';
 import type { AssignGeneralOrder, General, UnassignGeneralOrder } from './general.js';
+import type { ActiveEffect } from './effects.js';
 
 export type CityId = string;
 
@@ -79,6 +80,7 @@ export interface GameCity {
   garrisonMorale: number; // the city's own defending troops, separate from any visiting Army's morale
   wallDurability: number; // 0 means the city falls to a besieging attacker
   generals: General[]; // every general this player has recruited, whether assigned or idle
+  activeEffects: ActiveEffect[]; // temporary disaster/event modifiers currently in effect
 }
 
 export interface CommerceInvestment {
