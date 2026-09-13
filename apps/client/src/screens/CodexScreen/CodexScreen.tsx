@@ -51,6 +51,11 @@ export function CodexScreen() {
                 {g.skill.name} · {g.skill.effectType.includes('Boost') ? `+${Math.round(g.skill.magnitude * 100)}%` : ''} (발동{' '}
                 {Math.round(g.skill.triggerChance * 100)}%)
               </div>
+              {g.stats && (
+                <div className="general-stats muted">
+                  통 {g.stats.command} 무 {g.stats.force} 지 {g.stats.intelligence} 정 {g.stats.politics} 매 {g.stats.charm}
+                </div>
+              )}
             </div>
           </div>
         ))}

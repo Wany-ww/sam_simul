@@ -20,6 +20,18 @@ export interface GeneralSkill {
   triggerChance: number; // 0..1, rolled once per turn this general is assigned
 }
 
+// A 5-stat block (0-100), the standard convention across Chinese-historical
+// strategy games generally -- not any one game's proprietary numbers.
+// Optional so hand-built General objects (tests, ad-hoc fixtures) don't need
+// updating; every roster-sourced general always has one.
+export interface GeneralStats {
+  command: number; // 통솔
+  force: number; // 무력
+  intelligence: number; // 지력
+  politics: number; // 정치
+  charm: number; // 매력
+}
+
 export type GeneralAssignmentTarget =
   | { kind: 'facility'; facility: 'agriculture' | 'animalHusbandry' | 'commerce' | 'industry' }
   | { kind: 'army'; armyId: string }
@@ -31,6 +43,7 @@ export interface General {
   name: string;
   role: GeneralRole;
   skill: GeneralSkill;
+  stats?: GeneralStats;
   portraitSeed: string; // derives a deterministic placeholder avatar (color + initial) -- no real art pipeline yet
   assignment: GeneralAssignmentTarget | null;
 }

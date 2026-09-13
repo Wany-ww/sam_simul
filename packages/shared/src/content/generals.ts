@@ -1,4 +1,4 @@
-import type { General, GeneralRole, SkillEffectType } from '../types/general.js';
+import type { General, GeneralRole, GeneralStats, SkillEffectType } from '../types/general.js';
 
 // A curated roster of historical/연의 Three Kingdoms figures. Not the full
 // ~600-strong roster of a game like 삼국지14 -- that scale would mean either
@@ -85,6 +85,99 @@ const EPITHET_OVERRIDES: Record<string, EpithetOverride> = {
   하만: { skillName: '절천야차', effectType: 'combatPowerBoost', magnitude: 0.3, triggerChance: 0.3 },
 };
 
+// A 5-stat block (통솔/무력/지력/정치/매력, 0-100) for the figures we have
+// enough independent historical/연의 basis to assess individually -- e.g.
+// everyone agrees 여포's 무력 belongs at the very top of the scale and
+// 제갈량's 지력 does too, regardless of which specific game you ask, because
+// both conclusions come from the same public-domain historical reputation.
+// This is our own independent assessment, not a transcription of any one
+// game's proprietary numbers. Figures without an entry here get a
+// deterministic, more modest formulaic block instead (see makeRoster).
+const STAT_OVERRIDES: Record<string, GeneralStats> = {
+  여포: { command: 76, force: 100, intelligence: 30, politics: 25, charm: 35 },
+  관우: { command: 92, force: 97, intelligence: 75, politics: 62, charm: 94 },
+  장비: { command: 85, force: 96, intelligence: 42, politics: 30, charm: 55 },
+  조운: { command: 91, force: 95, intelligence: 76, politics: 58, charm: 85 },
+  마초: { command: 88, force: 96, intelligence: 47, politics: 30, charm: 64 },
+  허저: { command: 72, force: 94, intelligence: 30, politics: 20, charm: 42 },
+  전위: { command: 68, force: 95, intelligence: 28, politics: 18, charm: 40 },
+  방덕: { command: 82, force: 93, intelligence: 52, politics: 35, charm: 58 },
+  하후돈: { command: 84, force: 88, intelligence: 55, politics: 42, charm: 66 },
+  하후연: { command: 86, force: 90, intelligence: 58, politics: 38, charm: 55 },
+  황충: { command: 82, force: 92, intelligence: 55, politics: 40, charm: 62 },
+  강유: { command: 90, force: 85, intelligence: 88, politics: 65, charm: 68 },
+  태사자: { command: 82, force: 90, intelligence: 62, politics: 45, charm: 68 },
+  감녕: { command: 78, force: 91, intelligence: 55, politics: 32, charm: 60 },
+  장료: { command: 90, force: 91, intelligence: 76, politics: 58, charm: 78 },
+  서황: { command: 87, force: 89, intelligence: 68, politics: 50, charm: 65 },
+  악진: { command: 80, force: 88, intelligence: 58, politics: 40, charm: 55 },
+  우금: { command: 85, force: 84, intelligence: 65, politics: 48, charm: 48 },
+  장합: { command: 88, force: 87, intelligence: 78, politics: 55, charm: 60 },
+  위연: { command: 85, force: 89, intelligence: 62, politics: 35, charm: 48 },
+  육손: { command: 92, force: 68, intelligence: 93, politics: 78, charm: 82 },
+  여몽: { command: 90, force: 80, intelligence: 85, politics: 68, charm: 75 },
+  주유: { command: 96, force: 72, intelligence: 92, politics: 80, charm: 93 },
+  손책: { command: 91, force: 90, intelligence: 68, politics: 60, charm: 90 },
+  손권: { command: 88, force: 55, intelligence: 82, politics: 92, charm: 92 },
+  제갈량: { command: 94, force: 32, intelligence: 100, politics: 96, charm: 92 },
+  방통: { command: 78, force: 28, intelligence: 97, politics: 72, charm: 62 },
+  사마의: { command: 92, force: 42, intelligence: 97, politics: 92, charm: 72 },
+  곽가: { command: 62, force: 22, intelligence: 98, politics: 72, charm: 74 },
+  순욱: { command: 68, force: 20, intelligence: 94, politics: 96, charm: 90 },
+  순유: { command: 65, force: 22, intelligence: 92, politics: 84, charm: 72 },
+  가후: { command: 66, force: 25, intelligence: 96, politics: 82, charm: 55 },
+  노숙: { command: 78, force: 38, intelligence: 88, politics: 90, charm: 88 },
+  법정: { command: 70, force: 32, intelligence: 92, politics: 82, charm: 58 },
+  마량: { command: 55, force: 30, intelligence: 82, politics: 84, charm: 88 },
+  관로: { command: 20, force: 15, intelligence: 90, politics: 40, charm: 62 },
+  좌자: { command: 15, force: 20, intelligence: 88, politics: 20, charm: 70 },
+  사마휘: { command: 20, force: 10, intelligence: 90, politics: 45, charm: 85 },
+  두예: { command: 78, force: 45, intelligence: 90, politics: 78, charm: 60 },
+  마균: { command: 25, force: 15, intelligence: 92, politics: 40, charm: 45 },
+  환범: { command: 40, force: 20, intelligence: 86, politics: 75, charm: 55 },
+  조식: { command: 30, force: 25, intelligence: 88, politics: 55, charm: 92 },
+  고순: { command: 84, force: 85, intelligence: 68, politics: 45, charm: 58 },
+  엄안: { command: 70, force: 80, intelligence: 55, politics: 35, charm: 65 },
+  장연: { command: 75, force: 82, intelligence: 48, politics: 30, charm: 50 },
+  하만: { command: 65, force: 84, intelligence: 30, politics: 20, charm: 35 },
+  조창: { command: 78, force: 88, intelligence: 45, politics: 30, charm: 55 },
+  조휴: { command: 80, force: 75, intelligence: 68, politics: 55, charm: 62 },
+  종회: { command: 84, force: 55, intelligence: 93, politics: 82, charm: 65 },
+  등애: { command: 90, force: 70, intelligence: 90, politics: 68, charm: 55 },
+  전풍: { command: 55, force: 25, intelligence: 90, politics: 80, charm: 58 },
+  저수: { command: 62, force: 28, intelligence: 91, politics: 82, charm: 60 },
+  심배: { command: 58, force: 35, intelligence: 82, politics: 78, charm: 55 },
+};
+
+function pseudoStat(seed: number, min: number, max: number): number {
+  // A small deterministic pseudo-random spread (not cryptographic, just
+  // varied) so the ~330 figures without a hand-assessed block aren't all
+  // identical -- still clearly a notch below the named cast above.
+  const x = Math.sin(seed * 12.9898) * 43758.5453;
+  const frac = x - Math.floor(x);
+  return Math.round(min + frac * (max - min));
+}
+
+function generateStats(role: GeneralRole, index: number): GeneralStats {
+  const base = index * 7 + (role === 'domestic' ? 1 : 2);
+  if (role === 'domestic') {
+    return {
+      command: pseudoStat(base, 30, 65),
+      force: pseudoStat(base + 1, 15, 45),
+      intelligence: pseudoStat(base + 2, 45, 85),
+      politics: pseudoStat(base + 3, 45, 88),
+      charm: pseudoStat(base + 4, 35, 75),
+    };
+  }
+  return {
+    command: pseudoStat(base, 45, 82),
+    force: pseudoStat(base + 1, 45, 88),
+    intelligence: pseudoStat(base + 2, 25, 65),
+    politics: pseudoStat(base + 3, 20, 55),
+    charm: pseudoStat(base + 4, 30, 65),
+  };
+}
+
 function makeRoster(role: GeneralRole, entries: [rosterId: string, name: string][]): RosterEntry[] {
   const effectTypes = role === 'domestic' ? DOMESTIC_EFFECT_TYPES : COMBAT_EFFECT_TYPES;
   const skillNames = role === 'domestic' ? DOMESTIC_SKILL_NAMES : COMBAT_SKILL_NAMES;
@@ -96,12 +189,14 @@ function makeRoster(role: GeneralRole, entries: [rosterId: string, name: string]
     const skillName = override?.skillName ?? namePool![index % namePool!.length];
     const magnitude = override?.magnitude ?? Math.round((0.15 + (index % 4) * 0.05) * 100) / 100;
     const triggerChance = override?.triggerChance ?? Math.round((0.25 + (index % 3) * 0.05) * 100) / 100;
+    const stats = STAT_OVERRIDES[name] ?? generateStats(role, index);
 
     return {
       rosterId,
       name,
       role,
       skill: { name: skillName, effectType, magnitude, triggerChance },
+      stats,
       portraitSeed: rosterId,
     };
   });

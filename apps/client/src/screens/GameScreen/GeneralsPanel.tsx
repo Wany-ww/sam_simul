@@ -23,10 +23,17 @@ export function GeneralsPanel({ generals }: { generals: General[] }) {
         {generals.map((g) => (
           <li key={g.generalId}>
             <GeneralPortrait general={g} size={28} />
-            <span>
-              {g.name} ({ROLE_LABEL[g.role]}) — {g.skill.name} (발동 {Math.round(g.skill.triggerChance * 100)}%)
-            </span>
-            <span className="muted"> · {assignmentLabel(g)}</span>
+            <div>
+              <span>
+                {g.name} ({ROLE_LABEL[g.role]}) — {g.skill.name} (발동 {Math.round(g.skill.triggerChance * 100)}%)
+              </span>
+              <span className="muted"> · {assignmentLabel(g)}</span>
+              {g.stats && (
+                <div className="general-stats muted">
+                  통솔 {g.stats.command} · 무력 {g.stats.force} · 지력 {g.stats.intelligence} · 정치 {g.stats.politics} · 매력 {g.stats.charm}
+                </div>
+              )}
+            </div>
           </li>
         ))}
       </ul>
