@@ -128,6 +128,7 @@ export interface PlayerOrder {
   fortify?: FortifyOrder;
   assignGeneral?: AssignGeneralOrder;
   unassignGeneral?: UnassignGeneralOrder;
+  scoutForGeneral?: boolean;
 }
 
 export type BattleType = 'field' | 'siege';

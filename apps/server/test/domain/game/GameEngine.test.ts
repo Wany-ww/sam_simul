@@ -337,6 +337,35 @@ describe('resolveTurn', () => {
 
       expect(withGeneralAttackerCasualties).toBeGreaterThan(withoutAttackerCasualties);
     });
+
+    it('never recruits a general from the passive background chance when the room has none', () => {
+      for (let i = 0; i < 15; i++) {
+        const { nextState } = resolveTurn(makeState(), new Map(), ACTION_POINTS_PER_TURN, `no-scout-${i}`, MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE, NO_DISASTER, NO_EVENT);
+        expect(nextState.cities[0].generals).toHaveLength(0);
+      }
+    });
+
+    it('scouting (scoutForGeneral) meaningfully raises the appearance chance above the passive baseline', () => {
+      const state = makeState();
+      const scoutOrders = new Map<string, PlayerOrder>([['p1', { ...emptyOrder(), scoutForGeneral: true }]]);
+
+      const results = Array.from({ length: 15 }, (_, i) =>
+        resolveTurn(state, scoutOrders, ACTION_POINTS_PER_TURN, `scout-${i}`, MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE, NO_DISASTER, NO_EVENT),
+      );
+      expect(results.some((r) => r.nextState.cities[0].generals.length > 0)).toBe(true);
+    });
+
+    it('leaves a note when scouting fails to find anyone that turn', () => {
+      const state = makeState();
+      const scoutOrders = new Map<string, PlayerOrder>([['p1', { ...emptyOrder(), scoutForGeneral: true }]]);
+
+      // With NO_GENERAL_APPEARANCE as the base chance, only the scout bonus applies -- pick a seed where that roll still misses.
+      const misses = Array.from({ length: 30 }, (_, i) =>
+        resolveTurn(state, scoutOrders, ACTION_POINTS_PER_TURN, `scout-miss-${i}`, MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE, NO_DISASTER, NO_EVENT),
+      ).find((r) => r.nextState.cities[0].generals.length === 0);
+
+      expect(misses?.log[0].notes.some((n) => n.includes('탐색했지만'))).toBe(true);
+    });
   });
 
   describe('events & disasters', () => {

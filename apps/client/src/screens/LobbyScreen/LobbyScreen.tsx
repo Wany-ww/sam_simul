@@ -47,7 +47,10 @@ export function LobbyScreen() {
     <div className="screen lobby-screen">
       <header className="lobby-header">
         <h1>로비</h1>
-        <button onClick={() => setShowCreateForm((v) => !v)}>{showCreateForm ? '취소' : '방 만들기'}</button>
+        <div className="lobby-header-actions">
+          <button onClick={() => navigate('/codex')}>장수 도감</button>
+          <button onClick={() => setShowCreateForm((v) => !v)}>{showCreateForm ? '취소' : '방 만들기'}</button>
+        </div>
       </header>
 
       {showCreateForm && (

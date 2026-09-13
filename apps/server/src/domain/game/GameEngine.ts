@@ -1,5 +1,5 @@
 import type { Army, GameCity, GeneralAssignmentTarget, GameState, PlayerId, PlayerOrder, ResourceType, TurnLogEntry, Warehouse } from '@sam-simul/shared';
-import { FORTIFICATION_MORALE_BONUS, REGIONS, RESOURCE_LABEL, TURN_DURATION_DAYS, UNIT_TYPE_LABEL, createSeededRng, getMapNode } from '@sam-simul/shared';
+import { FORTIFICATION_MORALE_BONUS, REGIONS, RESOURCE_LABEL, SCOUT_APPEARANCE_CHANCE_BONUS, TURN_DURATION_DAYS, UNIT_TYPE_LABEL, createSeededRng, getMapNode } from '@sam-simul/shared';
 import { applyDecay, applyPopulationConsumption, applyProduction, calculateAgricultureOutput, calculateCommerceOutput, calculateHusbandryOutput, calculateIndustryOutput, populationProductionMultiplier } from './economy.js';
 import { applyMarketExchange } from './market.js';
 import { rollPopulationGrowth } from './population.js';
@@ -84,10 +84,14 @@ export function resolveTurn(
       generals = applyGeneralUnassignment(generals, order.unassignGeneral.generalId);
     }
 
-    const newGeneral = rollGeneralAppearance(rng, generalAppearanceBaseChance, city.population, nextFacilities, generals.map((g) => g.rosterId));
+    const appearanceChance = generalAppearanceBaseChance + (order.scoutForGeneral ? SCOUT_APPEARANCE_CHANCE_BONUS : 0);
+    const newGeneral = rollGeneralAppearance(rng, appearanceChance, city.population, nextFacilities, generals.map((g) => g.rosterId));
     if (newGeneral) {
       generals = [...generals, newGeneral];
-      notes.push(`${newGeneral.name}이(가) 등용에 응했습니다. (${newGeneral.role === 'domestic' ? '내정' : '전투'} 장수, 특기: ${newGeneral.skill.name})`);
+      const verb = order.scoutForGeneral ? '탐색 끝에' : '';
+      notes.push(`${verb}${newGeneral.name}이(가) 등용에 응했습니다. (${newGeneral.role === 'domestic' ? '내정' : '전투'} 장수, 특기: ${newGeneral.skill.name})`);
+    } else if (order.scoutForGeneral) {
+      notes.push('인재를 탐색했지만 이번 턴은 찾지 못했습니다.');
     }
 
     const generalEffects = computeGeneralEffects(rng, generals);

@@ -1,5 +1,6 @@
 import type { Army } from '@sam-simul/shared';
 import { UNIT_TYPE_LABEL, getMapNode } from '@sam-simul/shared';
+import { UnitIcon } from '../../components/GameIcons';
 
 const STANCE_LABEL: Record<Army['stance'], string> = { attack: '공격', defend: '방어' };
 
@@ -12,14 +13,20 @@ export function ArmiesPanel({ armies }: { armies: Army[] }) {
       <ul className="settings-readout">
         {armies.map((army) => {
           const currentName = getMapNode(army.currentNodeId)?.name ?? army.currentNodeId;
-          const troopSummary = army.troops.map((t) => `${UNIT_TYPE_LABEL[t.unitType]} ${Math.round(t.count)}명`).join(', ');
           const status = army.destinationNodeId
             ? `${currentName}에서 ${getMapNode(army.destinationNodeId)?.name ?? army.destinationNodeId}(으)로 행군 중 (남은 일수: ${army.daysRemaining})`
             : `${currentName}에 주둔 중`;
 
           return (
             <li key={army.armyId}>
-              {troopSummary} — {status}
+              <span className="icon-line">
+                {army.troops.map((t) => (
+                  <span key={t.unitType} className="icon-line">
+                    <UnitIcon unitType={t.unitType} /> {UNIT_TYPE_LABEL[t.unitType]} {Math.round(t.count)}명
+                  </span>
+                ))}
+              </span>{' '}
+              — {status}
               <br />
               <span className="muted">
                 사기: {Math.round(army.morale)} · 태세: {STANCE_LABEL[army.stance]}

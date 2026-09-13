@@ -1,5 +1,6 @@
 import type { EffectDomain, GameCity, ResourceType } from '@sam-simul/shared';
 import { RESOURCE_LABEL, REGIONS, UNIT_TYPE_LABEL, getMapNode } from '@sam-simul/shared';
+import { FacilityIcon, ResourceIcon, UnitIcon } from '../../components/GameIcons';
 
 const DOMAIN_LABEL: Record<EffectDomain, string> = { agriculture: '농업', animalHusbandry: '목축업', commerce: '상업', industry: '공업' };
 
@@ -21,14 +22,22 @@ export function CityOverview({ city }: { city: GameCity }) {
         <li>
           수비대 사기: {round(city.garrisonMorale)} · 성벽 내구도: {round(city.wallDurability)}
         </li>
-        <li>농업 수준: {round(city.facilities.agriculture)}</li>
-        <li>목축업 수준: {round(city.facilities.animalHusbandry)}</li>
-        <li>
-          상업: 교역소 {round(city.facilities.commerce.tradingPost)} · 세무소 {round(city.facilities.commerce.taxOffice)} · 시장 {round(city.facilities.commerce.market)}
+        <li className="icon-line">
+          <FacilityIcon facility="agriculture" /> 농업 수준: {round(city.facilities.agriculture)}
         </li>
-        <li>
-          공업: 군기감 {round(city.facilities.industry.armory)} · 조병창 {round(city.facilities.industry.weaponsWorkshop)} · 대장간{' '}
-          {round(city.facilities.industry.blacksmith)} · 공부 {round(city.facilities.industry.publicWorks)}
+        <li className="icon-line">
+          <FacilityIcon facility="animalHusbandry" /> 목축업 수준: {round(city.facilities.animalHusbandry)}
+        </li>
+        <li className="icon-line">
+          <FacilityIcon facility="tradingPost" /> 교역소 {round(city.facilities.commerce.tradingPost)}
+          <FacilityIcon facility="taxOffice" /> 세무소 {round(city.facilities.commerce.taxOffice)}
+          <FacilityIcon facility="market" /> 시장 {round(city.facilities.commerce.market)}
+        </li>
+        <li className="icon-line">
+          <FacilityIcon facility="armory" /> 군기감 {round(city.facilities.industry.armory)}
+          <FacilityIcon facility="weaponsWorkshop" /> 조병창 {round(city.facilities.industry.weaponsWorkshop)}
+          <FacilityIcon facility="blacksmith" /> 대장간 {round(city.facilities.industry.blacksmith)}
+          <FacilityIcon facility="publicWorks" /> 공부 {round(city.facilities.industry.publicWorks)}
         </li>
       </ul>
 
@@ -38,8 +47,8 @@ export function CityOverview({ city }: { city: GameCity }) {
       ) : (
         <ul className="settings-readout warehouse-list">
           {stockedResources.map(([resource, amount]) => (
-            <li key={resource}>
-              {RESOURCE_LABEL[resource]}: {round(amount)}
+            <li key={resource} className="icon-line">
+              <ResourceIcon resource={resource} /> {RESOURCE_LABEL[resource]}: {round(amount)}
             </li>
           ))}
         </ul>
@@ -65,8 +74,8 @@ export function CityOverview({ city }: { city: GameCity }) {
       ) : (
         <ul className="settings-readout">
           {city.troops.map((t) => (
-            <li key={t.unitType}>
-              {UNIT_TYPE_LABEL[t.unitType]}: {Math.round(t.count)}명 (훈련도 {round(t.trainingLevel)})
+            <li key={t.unitType} className="icon-line">
+              <UnitIcon unitType={t.unitType} /> {UNIT_TYPE_LABEL[t.unitType]}: {Math.round(t.count)}명 (훈련도 {round(t.trainingLevel)})
             </li>
           ))}
         </ul>

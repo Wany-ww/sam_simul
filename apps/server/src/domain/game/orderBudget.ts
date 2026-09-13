@@ -5,7 +5,8 @@ import {
   FORTIFY_ORDER_POINT_COST,
   MARCH_ORDER_POINT_COST,
   MARKET_EXCHANGE_POINT_COST,
-  RECRUIT_POINT_COST_PER_UNIT,
+  RECRUIT_UNITS_PER_POINT,
+  SCOUT_ORDER_POINT_COST,
   UNASSIGN_GENERAL_ORDER_POINT_COST,
 } from '@sam-simul/shared';
 
@@ -38,11 +39,11 @@ export function clampOrderToBudget(order: PlayerOrder, budget: number): PlayerOr
 
   let recruit: PlayerOrder['recruit'];
   if (order.recruit && order.recruit.count > 0) {
-    const maxByBudget = Math.floor(remaining / RECRUIT_POINT_COST_PER_UNIT);
+    const maxByBudget = remaining * RECRUIT_UNITS_PER_POINT;
     const count = Math.min(order.recruit.count, maxByBudget);
     if (count > 0) {
       recruit = { unitType: order.recruit.unitType, count };
-      remaining -= count * RECRUIT_POINT_COST_PER_UNIT;
+      remaining -= Math.ceil(count / RECRUIT_UNITS_PER_POINT);
     }
   }
 
@@ -91,6 +92,12 @@ export function clampOrderToBudget(order: PlayerOrder, budget: number): PlayerOr
     remaining -= UNASSIGN_GENERAL_ORDER_POINT_COST;
   }
 
+  let scoutForGeneral: PlayerOrder['scoutForGeneral'];
+  if (order.scoutForGeneral && remaining >= SCOUT_ORDER_POINT_COST) {
+    scoutForGeneral = true;
+    remaining -= SCOUT_ORDER_POINT_COST;
+  }
+
   return {
     investment: {
       agriculture,
@@ -106,5 +113,6 @@ export function clampOrderToBudget(order: PlayerOrder, budget: number): PlayerOr
     fortify,
     assignGeneral,
     unassignGeneral,
+    scoutForGeneral,
   };
 }

@@ -1,5 +1,5 @@
 import type { GameCity, MarchOrder, PlayerOrder, ResourceType, Rng, UnitType } from '@sam-simul/shared';
-import { MARCH_ORDER_POINT_COST, RECRUIT_EQUIPMENT_COST, getAdjacentNodeIds } from '@sam-simul/shared';
+import { MARCH_ORDER_POINT_COST, RECRUIT_EQUIPMENT_COST, RECRUIT_UNITS_PER_POINT, getAdjacentNodeIds } from '@sam-simul/shared';
 
 // A simple, deterministic rule-based bot for AI-controlled cities. It goes
 // through the exact same resolveTurn/clampOrderToBudget path as any human
@@ -58,7 +58,7 @@ export function decideAiOrder(city: GameCity, budget: number, rng: Rng): PlayerO
   const march = decideMarch(city, remaining, rng);
   if (march) remaining -= MARCH_ORDER_POINT_COST;
 
-  const recruit = remaining > 0 ? { unitType: pickRecruitUnitType(city), count: remaining } : undefined;
+  const recruit = remaining > 0 ? { unitType: pickRecruitUnitType(city), count: remaining * RECRUIT_UNITS_PER_POINT } : undefined;
 
   return {
     investment: { agriculture, animalHusbandry, commerce: {}, industry: { armory } },

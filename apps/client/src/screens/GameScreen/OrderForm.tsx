@@ -6,14 +6,16 @@ import {
   FORTIFY_ORDER_POINT_COST,
   MARCH_ORDER_POINT_COST,
   MARKET_EXCHANGE_POINT_COST,
-  RECRUIT_POINT_COST_PER_UNIT,
+  RECRUIT_UNITS_PER_POINT,
   RESOURCE_LABEL,
+  SCOUT_ORDER_POINT_COST,
   UNASSIGN_GENERAL_ORDER_POINT_COST,
   UNIT_TYPE_LABEL,
   getAdjacentNodeIds,
   getMapNode,
 } from '@sam-simul/shared';
 import { getSocket } from '../../net/socket';
+import { FacilityIcon, ResourceIcon, UnitIcon } from '../../components/GameIcons';
 
 const STANCE_LABEL: Record<ArmyStance, string> = { attack: '공격', defend: '방어' };
 const FACILITY_LABEL: Record<'agriculture' | 'animalHusbandry' | 'commerce' | 'industry', string> = {
@@ -54,6 +56,7 @@ interface Draft {
   assignFacility: 'agriculture' | 'animalHusbandry' | 'commerce' | 'industry';
   assignArmyId: string;
   unassignGeneralId: string;
+  scoutForGeneral: boolean;
 }
 
 const EMPTY_DRAFT: Draft = {
@@ -83,6 +86,7 @@ const EMPTY_DRAFT: Draft = {
   assignFacility: 'agriculture',
   assignArmyId: '',
   unassignGeneralId: '',
+  scoutForGeneral: false,
 };
 
 function totalSpent(d: Draft): number {
@@ -96,14 +100,15 @@ function totalSpent(d: Draft): number {
     d.weaponsWorkshop +
     d.blacksmith +
     d.publicWorks +
-    d.recruitCount * RECRUIT_POINT_COST_PER_UNIT +
+    (d.recruitCount > 0 ? Math.ceil(d.recruitCount / RECRUIT_UNITS_PER_POINT) : 0) +
     d.trainPoints +
     (d.marketAmount > 0 ? MARKET_EXCHANGE_POINT_COST : 0) +
     (d.marchCount > 0 && d.marchDestinationNodeId ? MARCH_ORDER_POINT_COST : 0) +
     (d.stanceArmyId && d.stance ? ARMY_STANCE_ORDER_POINT_COST : 0) +
     (d.fortifyArmyId ? FORTIFY_ORDER_POINT_COST : 0) +
     (d.assignGeneralId && d.assignTargetKind ? ASSIGN_GENERAL_ORDER_POINT_COST : 0) +
-    (d.unassignGeneralId ? UNASSIGN_GENERAL_ORDER_POINT_COST : 0)
+    (d.unassignGeneralId ? UNASSIGN_GENERAL_ORDER_POINT_COST : 0) +
+    (d.scoutForGeneral ? SCOUT_ORDER_POINT_COST : 0)
   );
 }
 
@@ -130,6 +135,7 @@ function buildOrder(d: Draft): PlayerOrder {
     fortify: d.fortifyArmyId ? { armyId: d.fortifyArmyId } : undefined,
     assignGeneral: d.assignGeneralId && buildAssignTarget(d) ? { generalId: d.assignGeneralId, target: buildAssignTarget(d)! } : undefined,
     unassignGeneral: d.unassignGeneralId ? { generalId: d.unassignGeneralId } : undefined,
+    scoutForGeneral: d.scoutForGeneral || undefined,
   };
 }
 
@@ -194,11 +200,15 @@ export function OrderForm({
       <h3>농업 / 목축업</h3>
       <div className="settings-grid">
         <label>
-          농업 투자
+          <span className="icon-line">
+            <FacilityIcon facility="agriculture" /> 농업 투자
+          </span>
           <input type="number" min={0} disabled={disabled} {...field('agriculture')} />
         </label>
         <label>
-          목축업 투자
+          <span className="icon-line">
+            <FacilityIcon facility="animalHusbandry" /> 목축업 투자
+          </span>
           <input type="number" min={0} disabled={disabled} {...field('animalHusbandry')} />
         </label>
       </div>
@@ -206,15 +216,21 @@ export function OrderForm({
       <h3>상업</h3>
       <div className="settings-grid">
         <label>
-          교역소
+          <span className="icon-line">
+            <FacilityIcon facility="tradingPost" /> 교역소
+          </span>
           <input type="number" min={0} disabled={disabled} {...field('tradingPost')} />
         </label>
         <label>
-          세무소
+          <span className="icon-line">
+            <FacilityIcon facility="taxOffice" /> 세무소
+          </span>
           <input type="number" min={0} disabled={disabled} {...field('taxOffice')} />
         </label>
         <label>
-          시장
+          <span className="icon-line">
+            <FacilityIcon facility="market" /> 시장
+          </span>
           <input type="number" min={0} disabled={disabled} {...field('market')} />
         </label>
       </div>
@@ -222,19 +238,27 @@ export function OrderForm({
       <h3>공업</h3>
       <div className="settings-grid">
         <label>
-          군기감
+          <span className="icon-line">
+            <FacilityIcon facility="armory" /> 군기감
+          </span>
           <input type="number" min={0} disabled={disabled} {...field('armory')} />
         </label>
         <label>
-          조병창
+          <span className="icon-line">
+            <FacilityIcon facility="weaponsWorkshop" /> 조병창
+          </span>
           <input type="number" min={0} disabled={disabled} {...field('weaponsWorkshop')} />
         </label>
         <label>
-          대장간
+          <span className="icon-line">
+            <FacilityIcon facility="blacksmith" /> 대장간
+          </span>
           <input type="number" min={0} disabled={disabled} {...field('blacksmith')} />
         </label>
         <label>
-          공부
+          <span className="icon-line">
+            <FacilityIcon facility="publicWorks" /> 공부
+          </span>
           <input type="number" min={0} disabled={disabled} {...field('publicWorks')} />
         </label>
       </div>
@@ -243,17 +267,20 @@ export function OrderForm({
       <div className="settings-grid">
         <label>
           판매할 자원
-          <select
-            value={draft.marketFrom}
-            disabled={disabled}
-            onChange={(e) => setDraft({ ...draft, marketFrom: e.target.value as ResourceType })}
-          >
-            {TRADEABLE_RESOURCES.map((r) => (
-              <option key={r} value={r}>
-                {RESOURCE_LABEL[r]}
-              </option>
-            ))}
-          </select>
+          <span className="select-with-icon">
+            <ResourceIcon resource={draft.marketFrom} />
+            <select
+              value={draft.marketFrom}
+              disabled={disabled}
+              onChange={(e) => setDraft({ ...draft, marketFrom: e.target.value as ResourceType })}
+            >
+              {TRADEABLE_RESOURCES.map((r) => (
+                <option key={r} value={r}>
+                  {RESOURCE_LABEL[r]}
+                </option>
+              ))}
+            </select>
+          </span>
         </label>
         <label>
           판매량 (금으로 교환)
@@ -265,35 +292,41 @@ export function OrderForm({
       <div className="settings-grid">
         <label>
           징병 병종
-          <select
-            value={draft.recruitUnitType}
-            disabled={disabled}
-            onChange={(e) => setDraft({ ...draft, recruitUnitType: e.target.value as UnitType })}
-          >
-            {UNIT_TYPES.map((u) => (
-              <option key={u} value={u}>
-                {UNIT_TYPE_LABEL[u]}
-              </option>
-            ))}
-          </select>
+          <span className="select-with-icon">
+            <UnitIcon unitType={draft.recruitUnitType} />
+            <select
+              value={draft.recruitUnitType}
+              disabled={disabled}
+              onChange={(e) => setDraft({ ...draft, recruitUnitType: e.target.value as UnitType })}
+            >
+              {UNIT_TYPES.map((u) => (
+                <option key={u} value={u}>
+                  {UNIT_TYPE_LABEL[u]}
+                </option>
+              ))}
+            </select>
+          </span>
         </label>
         <label>
-          징병 인원
+          징병 인원 (포인트당 {RECRUIT_UNITS_PER_POINT}명)
           <input type="number" min={0} disabled={disabled} {...field('recruitCount')} />
         </label>
         <label>
           훈련 병종
-          <select
-            value={draft.trainUnitType}
-            disabled={disabled}
-            onChange={(e) => setDraft({ ...draft, trainUnitType: e.target.value as UnitType })}
-          >
-            {UNIT_TYPES.map((u) => (
-              <option key={u} value={u}>
-                {UNIT_TYPE_LABEL[u]}
-              </option>
-            ))}
-          </select>
+          <span className="select-with-icon">
+            <UnitIcon unitType={draft.trainUnitType} />
+            <select
+              value={draft.trainUnitType}
+              disabled={disabled}
+              onChange={(e) => setDraft({ ...draft, trainUnitType: e.target.value as UnitType })}
+            >
+              {UNIT_TYPES.map((u) => (
+                <option key={u} value={u}>
+                  {UNIT_TYPE_LABEL[u]}
+                </option>
+              ))}
+            </select>
+          </span>
         </label>
         <label>
           훈련 포인트
@@ -308,17 +341,20 @@ export function OrderForm({
         <div className="settings-grid">
           <label>
             병종
-            <select
-              value={draft.marchUnitType}
-              disabled={disabled}
-              onChange={(e) => setDraft({ ...draft, marchUnitType: e.target.value as UnitType })}
-            >
-              {availableUnitTypes.map((u) => (
-                <option key={u} value={u}>
-                  {UNIT_TYPE_LABEL[u]}
-                </option>
-              ))}
-            </select>
+            <span className="select-with-icon">
+              <UnitIcon unitType={draft.marchUnitType} />
+              <select
+                value={draft.marchUnitType}
+                disabled={disabled}
+                onChange={(e) => setDraft({ ...draft, marchUnitType: e.target.value as UnitType })}
+              >
+                {availableUnitTypes.map((u) => (
+                  <option key={u} value={u}>
+                    {UNIT_TYPE_LABEL[u]}
+                  </option>
+                ))}
+              </select>
+            </span>
           </label>
           <label>
             인원
@@ -382,9 +418,20 @@ export function OrderForm({
         </div>
       )}
 
-      <h3>장수 배정</h3>
+      <h3>장수 탐색 / 배정</h3>
+      <div className="settings-grid">
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            disabled={disabled}
+            checked={draft.scoutForGeneral}
+            onChange={(e) => setDraft({ ...draft, scoutForGeneral: e.target.checked })}
+          />
+          인재 탐색 (포인트 {SCOUT_ORDER_POINT_COST}, 등용 확률 상승)
+        </label>
+      </div>
       {city.generals.length === 0 ? (
-        <p className="muted">보유한 장수가 없습니다.</p>
+        <p className="muted">보유한 장수가 없습니다. 인재 탐색으로 등용해보세요.</p>
       ) : (
         <>
           <div className="settings-grid">

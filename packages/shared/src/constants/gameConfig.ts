@@ -117,7 +117,10 @@ export const POPULATION_GROWTH_MAX = 8;
 export const GRAIN_CONSUMPTION_PER_POPULATION = 0.05; // per turn, drawn from the rice/wheat/potato pool
 export const PRODUCTION_BONUS_PER_CAPITA = 0.001; // multiplier bonus to total production based on population
 
-export const RECRUIT_POINT_COST_PER_UNIT = 1;
+// 1 action point recruits up to this many troops (further limited, as
+// always, by gold/population/equipment) -- a flat 1 point per soldier made
+// recruiting consume the entire turn budget for even a modest levy.
+export const RECRUIT_UNITS_PER_POINT = 5;
 export const RECRUIT_GOLD_COST_PER_UNIT = 2;
 export const RECRUIT_EQUIPMENT_COST: Partial<Record<UnitType, ResourceType>> = {
   spearman: 'spear',
@@ -189,6 +192,14 @@ export const GENERAL_APPEARANCE_CHANCE_MAX = 0.5;
 
 export const ASSIGN_GENERAL_ORDER_POINT_COST = 1;
 export const UNASSIGN_GENERAL_ORDER_POINT_COST = 0; // freeing a general back up costs nothing
+
+// An active "탐색" (scout) order: spend action points to meaningfully boost
+// this turn's appearance chance on top of the passive population/facility
+// roll, rather than only ever waiting on the background chance. Recruitment
+// is still probabilistic -- scouting raises the odds, it doesn't guarantee
+// a hit.
+export const SCOUT_ORDER_POINT_COST = 2;
+export const SCOUT_APPEARANCE_CHANCE_BONUS = 0.25;
 
 // Phase 7: events & disasters. Rolled per city per turn (not globally per
 // room), resolving the roadmap's targeting question in favor of the same

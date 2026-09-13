@@ -37,8 +37,8 @@ describe('decideAiOrder', () => {
   it('never requests more investment/recruit points than the budget allows', () => {
     const city = makeCity();
     const order = decideAiOrder(city, 10, createSeededRng('budget-check'));
-    const spent =
-      order.investment.agriculture + order.investment.animalHusbandry + (order.investment.industry.armory ?? 0) + (order.recruit?.count ?? 0);
+    const recruitPoints = order.recruit ? Math.ceil(order.recruit.count / 5) : 0; // RECRUIT_UNITS_PER_POINT
+    const spent = order.investment.agriculture + order.investment.animalHusbandry + (order.investment.industry.armory ?? 0) + recruitPoints;
     expect(spent).toBeLessThanOrEqual(10);
   });
 

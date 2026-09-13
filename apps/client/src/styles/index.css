@@ -434,3 +434,88 @@ button:disabled {
   color: #7fd88f;
   font-weight: 600;
 }
+
+.icon-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+li.icon-line {
+  display: flex;
+}
+
+.select-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.select-with-icon svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.icon-line svg {
+  flex-shrink: 0;
+  color: var(--accent);
+}
+
+.checkbox-label {
+  flex-direction: row !important;
+  align-items: center;
+  gap: 8px !important;
+}
+
+.checkbox-label input[type='checkbox'] {
+  width: auto;
+}
+
+.lobby-header-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.codex-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.codex-controls input {
+  flex: 1;
+  max-width: 240px;
+}
+
+.codex-role-filters {
+  display: flex;
+  gap: 6px;
+}
+
+.codex-role-filters button {
+  background: var(--border);
+  color: var(--text);
+  padding: 6px 12px;
+}
+
+.codex-filter-active {
+  background: var(--accent) !important;
+  color: #1a1410 !important;
+}
+
+.codex-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.codex-entry {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 0;
+}
+
+.codex-entry-name {
+  font-weight: 600;
+}

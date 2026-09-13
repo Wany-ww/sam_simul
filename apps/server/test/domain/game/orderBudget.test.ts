@@ -37,12 +37,22 @@ describe('clampOrderToBudget', () => {
     expect(result.marketExchange).toBeUndefined();
   });
 
-  it('clamps recruit count down to whatever budget remains', () => {
+  it('clamps recruit count down to whatever the remaining budget can afford, at RECRUIT_UNITS_PER_POINT per point', () => {
+    const result = clampOrderToBudget(
+      order({ investment: { agriculture: 9, animalHusbandry: 0, commerce: {}, industry: {} }, recruit: { unitType: 'spearman', count: 100 } }),
+      10,
+    );
+    // 1 point remains -> up to RECRUIT_UNITS_PER_POINT (5) troops afforded by budget.
+    expect(result.recruit).toEqual({ unitType: 'spearman', count: 5 });
+  });
+
+  it('does not clamp a recruit request that already fits within one point\'s worth of troops', () => {
     const result = clampOrderToBudget(
       order({ investment: { agriculture: 7, animalHusbandry: 0, commerce: {}, industry: {} }, recruit: { unitType: 'spearman', count: 10 } }),
       10,
     );
-    expect(result.recruit).toEqual({ unitType: 'spearman', count: 3 });
+    // 3 points remain -> up to 15 troops afforded; the requested 10 fits untouched.
+    expect(result.recruit).toEqual({ unitType: 'spearman', count: 10 });
   });
 
   it('never produces a negative investment even if given one', () => {
