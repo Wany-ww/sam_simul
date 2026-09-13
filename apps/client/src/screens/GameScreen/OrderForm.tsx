@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import type { Army, ArmyStance, GameCity, GameState, MapNodeId, PlayerOrder, ResourceType, RoomId, UnitType } from '@sam-simul/shared';
+import type { Army, ArmyStance, GameCity, GameState, GeneralAssignmentTarget, MapNodeId, PlayerOrder, ResourceType, RoomId, UnitType } from '@sam-simul/shared';
 import {
   ARMY_STANCE_ORDER_POINT_COST,
+  ASSIGN_GENERAL_ORDER_POINT_COST,
   FORTIFY_ORDER_POINT_COST,
   MARCH_ORDER_POINT_COST,
   MARKET_EXCHANGE_POINT_COST,
   RECRUIT_POINT_COST_PER_UNIT,
   RESOURCE_LABEL,
+  UNASSIGN_GENERAL_ORDER_POINT_COST,
   UNIT_TYPE_LABEL,
   getAdjacentNodeIds,
   getMapNode,
@@ -14,6 +16,13 @@ import {
 import { getSocket } from '../../net/socket';
 
 const STANCE_LABEL: Record<ArmyStance, string> = { attack: '공격', defend: '방어' };
+const FACILITY_LABEL: Record<'agriculture' | 'animalHusbandry' | 'commerce' | 'industry', string> = {
+  agriculture: '농업',
+  animalHusbandry: '목축업',
+  commerce: '상업',
+  industry: '공업',
+};
+type AssignTargetKind = 'facility' | 'garrison' | 'army';
 
 const UNIT_TYPES: UnitType[] = ['spearman', 'crossbowman', 'cavalry', 'engineer'];
 const TRADEABLE_RESOURCES: ResourceType[] = ['rice', 'wheat', 'potato', 'cotton', 'hemp', 'cattle', 'horse', 'pig', 'leather'];
@@ -40,6 +49,11 @@ interface Draft {
   stanceArmyId: string;
   stance: ArmyStance | '';
   fortifyArmyId: string;
+  assignGeneralId: string;
+  assignTargetKind: AssignTargetKind | '';
+  assignFacility: 'agriculture' | 'animalHusbandry' | 'commerce' | 'industry';
+  assignArmyId: string;
+  unassignGeneralId: string;
 }
 
 const EMPTY_DRAFT: Draft = {
@@ -64,6 +78,11 @@ const EMPTY_DRAFT: Draft = {
   stanceArmyId: '',
   stance: '',
   fortifyArmyId: '',
+  assignGeneralId: '',
+  assignTargetKind: '',
+  assignFacility: 'agriculture',
+  assignArmyId: '',
+  unassignGeneralId: '',
 };
 
 function totalSpent(d: Draft): number {
@@ -82,8 +101,17 @@ function totalSpent(d: Draft): number {
     (d.marketAmount > 0 ? MARKET_EXCHANGE_POINT_COST : 0) +
     (d.marchCount > 0 && d.marchDestinationNodeId ? MARCH_ORDER_POINT_COST : 0) +
     (d.stanceArmyId && d.stance ? ARMY_STANCE_ORDER_POINT_COST : 0) +
-    (d.fortifyArmyId ? FORTIFY_ORDER_POINT_COST : 0)
+    (d.fortifyArmyId ? FORTIFY_ORDER_POINT_COST : 0) +
+    (d.assignGeneralId && d.assignTargetKind ? ASSIGN_GENERAL_ORDER_POINT_COST : 0) +
+    (d.unassignGeneralId ? UNASSIGN_GENERAL_ORDER_POINT_COST : 0)
   );
+}
+
+function buildAssignTarget(d: Draft): GeneralAssignmentTarget | undefined {
+  if (d.assignTargetKind === 'facility') return { kind: 'facility', facility: d.assignFacility };
+  if (d.assignTargetKind === 'garrison') return { kind: 'garrison' };
+  if (d.assignTargetKind === 'army' && d.assignArmyId) return { kind: 'army', armyId: d.assignArmyId };
+  return undefined;
 }
 
 function buildOrder(d: Draft): PlayerOrder {
@@ -100,6 +128,8 @@ function buildOrder(d: Draft): PlayerOrder {
     march: d.marchCount > 0 && d.marchDestinationNodeId ? { unitType: d.marchUnitType, count: d.marchCount, destinationNodeId: d.marchDestinationNodeId } : undefined,
     armyStance: d.stanceArmyId && d.stance ? { armyId: d.stanceArmyId, stance: d.stance } : undefined,
     fortify: d.fortifyArmyId ? { armyId: d.fortifyArmyId } : undefined,
+    assignGeneral: d.assignGeneralId && buildAssignTarget(d) ? { generalId: d.assignGeneralId, target: buildAssignTarget(d)! } : undefined,
+    unassignGeneral: d.unassignGeneralId ? { generalId: d.unassignGeneralId } : undefined,
   };
 }
 
@@ -344,6 +374,84 @@ export function OrderForm({
             </select>
           </label>
         </div>
+      )}
+
+      <h3>장수 배정</h3>
+      {city.generals.length === 0 ? (
+        <p className="muted">보유한 장수가 없습니다.</p>
+      ) : (
+        <>
+          <div className="settings-grid">
+            <label>
+              배정 대상 장수
+              <select value={draft.assignGeneralId} disabled={disabled} onChange={(e) => setDraft({ ...draft, assignGeneralId: e.target.value })}>
+                <option value="">선택 안 함</option>
+                {city.generals.map((g) => (
+                  <option key={g.generalId} value={g.generalId}>
+                    {g.name} ({g.role === 'domestic' ? '내정' : '전투'})
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label>
+              배정 위치
+              <select
+                value={draft.assignTargetKind}
+                disabled={disabled}
+                onChange={(e) => setDraft({ ...draft, assignTargetKind: e.target.value as AssignTargetKind })}
+              >
+                <option value="">선택 안 함</option>
+                <option value="facility">내정 시설</option>
+                <option value="garrison">수비대</option>
+                <option value="army">부대</option>
+              </select>
+            </label>
+            {draft.assignTargetKind === 'facility' && (
+              <label>
+                시설
+                <select
+                  value={draft.assignFacility}
+                  disabled={disabled}
+                  onChange={(e) => setDraft({ ...draft, assignFacility: e.target.value as Draft['assignFacility'] })}
+                >
+                  {(Object.keys(FACILITY_LABEL) as Draft['assignFacility'][]).map((f) => (
+                    <option key={f} value={f}>
+                      {FACILITY_LABEL[f]}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+            {draft.assignTargetKind === 'army' && (
+              <label>
+                부대
+                <select value={draft.assignArmyId} disabled={disabled} onChange={(e) => setDraft({ ...draft, assignArmyId: e.target.value })}>
+                  <option value="">선택 안 함</option>
+                  {armies.map((a) => (
+                    <option key={a.armyId} value={a.armyId}>
+                      {armyLabel(a)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )}
+          </div>
+          <div className="settings-grid">
+            <label>
+              배정 해제
+              <select value={draft.unassignGeneralId} disabled={disabled} onChange={(e) => setDraft({ ...draft, unassignGeneralId: e.target.value })}>
+                <option value="">선택 안 함</option>
+                {city.generals
+                  .filter((g) => g.assignment !== null)
+                  .map((g) => (
+                    <option key={g.generalId} value={g.generalId}>
+                      {g.name}
+                    </option>
+                  ))}
+              </select>
+            </label>
+          </div>
+        </>
       )}
 
       <button onClick={submit} disabled={disabled || overBudget}>

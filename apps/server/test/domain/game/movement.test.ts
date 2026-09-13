@@ -19,6 +19,7 @@ function makeCity(overrides: Partial<GameCity> = {}): GameCity {
     troops: [{ unitType: 'spearman', count: 10, trainingLevel: 5 }],
     garrisonMorale: 100,
     wallDurability: 500,
+    generals: [],
     ...overrides,
   };
 }

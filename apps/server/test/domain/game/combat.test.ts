@@ -32,6 +32,12 @@ describe('computeCombatPower', () => {
     expect(lowMorale).toBeLessThan(fullMorale);
   });
 
+  it('applies an optional general power multiplier, defaulting to 1 when absent', () => {
+    const base = computeCombatPower(makeSide(), false);
+    const boosted = computeCombatPower(makeSide({ powerMultiplier: 1.25 }), false);
+    expect(boosted).toBeCloseTo(base * 1.25);
+  });
+
   it('gives an attack-stance bonus', () => {
     const defending = computeCombatPower(makeSide({ stance: 'defend' }), false);
     const attacking = computeCombatPower(makeSide({ stance: 'attack' }), false);

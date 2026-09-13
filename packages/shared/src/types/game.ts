@@ -1,6 +1,7 @@
 import type { PlayerId } from './session.js';
 import type { RoomId } from './room.js';
 import type { Army, ArmyStanceOrder, FortifyOrder, MapNodeId, MarchOrder } from './map.js';
+import type { AssignGeneralOrder, General, UnassignGeneralOrder } from './general.js';
 
 export type CityId = string;
 
@@ -77,6 +78,7 @@ export interface GameCity {
   troops: TroopStack[];
   garrisonMorale: number; // the city's own defending troops, separate from any visiting Army's morale
   wallDurability: number; // 0 means the city falls to a besieging attacker
+  generals: General[]; // every general this player has recruited, whether assigned or idle
 }
 
 export interface CommerceInvestment {
@@ -122,6 +124,8 @@ export interface PlayerOrder {
   march?: MarchOrder;
   armyStance?: ArmyStanceOrder;
   fortify?: FortifyOrder;
+  assignGeneral?: AssignGeneralOrder;
+  unassignGeneral?: UnassignGeneralOrder;
 }
 
 export type BattleType = 'field' | 'siege';

@@ -1,5 +1,16 @@
 import type { GameCity, GameState, PlayerId, PlayerOrder, Room, RoomId, Warehouse } from '@sam-simul/shared';
-import { ACTION_POINTS_PER_TURN, GRAIN_RESOURCES, MAP_SIZE_TRAVEL_DAY_MULTIPLIER, MAX_WALL_DURABILITY, STARTING_CITY_NODE_IDS, STARTING_GOLD, STARTING_GRAIN_PER_TYPE, STARTING_MORALE, STARTING_POPULATION } from '@sam-simul/shared';
+import {
+  ACTION_POINTS_PER_TURN,
+  GENERAL_APPEARANCE_BASE_PROBABILITY,
+  GRAIN_RESOURCES,
+  MAP_SIZE_TRAVEL_DAY_MULTIPLIER,
+  MAX_WALL_DURABILITY,
+  STARTING_CITY_NODE_IDS,
+  STARTING_GOLD,
+  STARTING_GRAIN_PER_TYPE,
+  STARTING_MORALE,
+  STARTING_POPULATION,
+} from '@sam-simul/shared';
 import { resolveTurn } from './GameEngine.js';
 import type { AppServer } from '../../sockets/types.js';
 
@@ -14,6 +25,7 @@ interface GameSession {
   orders: Map<PlayerId, PlayerOrder>;
   turnTimeLimitSeconds: number;
   mapSizeMultiplier: number;
+  generalAppearanceBaseChance: number;
   timer: NodeJS.Timeout;
 }
 
@@ -43,6 +55,7 @@ export class GameSessionManager {
       troops: [],
       garrisonMorale: STARTING_MORALE,
       wallDurability: MAX_WALL_DURABILITY,
+      generals: [],
     }));
 
     const state: GameState = {
@@ -61,6 +74,7 @@ export class GameSessionManager {
       orders: new Map(),
       turnTimeLimitSeconds: room.settings.turnTimeLimitSeconds,
       mapSizeMultiplier: MAP_SIZE_TRAVEL_DAY_MULTIPLIER[room.settings.mapSize],
+      generalAppearanceBaseChance: GENERAL_APPEARANCE_BASE_PROBABILITY[room.settings.generalAppearanceProbability],
       timer: this.scheduleResolution(room.roomId, room.settings.turnTimeLimitSeconds),
     });
 
@@ -100,7 +114,14 @@ export class GameSessionManager {
     const session = this.sessions.get(roomId);
     if (!session) return;
 
-    const { nextState } = resolveTurn(session.state, session.orders, ACTION_POINTS_PER_TURN, `${roomId}:${session.state.turnNumber}`, session.mapSizeMultiplier);
+    const { nextState } = resolveTurn(
+      session.state,
+      session.orders,
+      ACTION_POINTS_PER_TURN,
+      `${roomId}:${session.state.turnNumber}`,
+      session.mapSizeMultiplier,
+      session.generalAppearanceBaseChance,
+    );
 
     session.state = { ...nextState, turnEndsAt: Date.now() + session.turnTimeLimitSeconds * 1000 };
     session.orders = new Map();

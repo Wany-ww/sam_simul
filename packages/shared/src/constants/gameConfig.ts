@@ -178,3 +178,14 @@ export const WALL_DAMAGE_COEFFICIENT = 0.1; // fraction of the siege attacker's 
 export const ARMY_STANCE_ORDER_POINT_COST = 1;
 export const FORTIFY_ORDER_POINT_COST = 2;
 export const FORTIFICATION_MORALE_BONUS = 10; // one-time, applied when fortifying
+
+// Phase 6: generals. Appearance chance combines the room's
+// generalAppearanceProbability tier (GENERAL_APPEARANCE_BASE_PROBABILITY,
+// already defined above) with population and total facility development,
+// per the spec's "인구 수 + 내정 수치에 따라 장수 등장확률 증가".
+export const GENERAL_APPEARANCE_POPULATION_DIVISOR = 500; // +1% appearance chance per this many population
+export const GENERAL_APPEARANCE_FACILITY_LEVEL_BONUS = 0.002; // per total facility level, summed across all domains
+export const GENERAL_APPEARANCE_CHANCE_MAX = 0.5;
+
+export const ASSIGN_GENERAL_ORDER_POINT_COST = 1;
+export const UNASSIGN_GENERAL_ORDER_POINT_COST = 0; // freeing a general back up costs nothing

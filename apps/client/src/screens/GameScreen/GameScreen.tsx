@@ -4,6 +4,7 @@ import { useGameStore } from '../../state/gameStore';
 import { useRoomStore } from '../../state/roomStore';
 import { ArmiesPanel } from './ArmiesPanel';
 import { CityOverview } from './CityOverview';
+import { GeneralsPanel } from './GeneralsPanel';
 import { OrderForm } from './OrderForm';
 import { TurnLogPanel } from './TurnLogPanel';
 
@@ -58,6 +59,7 @@ export function GameScreen() {
           <div>
             <CityOverview city={myCity} />
             <ArmiesPanel armies={myArmies} />
+            <GeneralsPanel generals={myCity.generals} />
           </div>
           <OrderForm roomId={gameState.roomId} city={myCity} armies={myArmies} actionPointsPerTurn={gameState.actionPointsPerTurn} disabled={hasSubmittedThisTurn} onSubmit={markSubmitted} />
         </div>

@@ -1,9 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import type { GameState, PlayerOrder } from '@sam-simul/shared';
+import type { General, GameState, PlayerOrder } from '@sam-simul/shared';
 import { ACTION_POINTS_PER_TURN } from '@sam-simul/shared';
 import { resolveTurn } from '../../../src/domain/game/GameEngine.js';
 
 const MEDIUM_MAP_MULTIPLIER = 1;
+const NO_GENERAL_APPEARANCE = 0; // keeps these tests focused on economy/movement/combat, not general RNG
 
 function emptyOrder(): PlayerOrder {
   return { investment: { agriculture: 0, animalHusbandry: 0, commerce: {}, industry: {} } };
@@ -32,6 +33,7 @@ function makeState(): GameState {
         troops: [],
         garrisonMorale: 100,
         wallDurability: 500,
+        generals: [],
       },
     ],
     armies: [],
@@ -47,7 +49,7 @@ describe('resolveTurn', () => {
       ['p1', { investment: { agriculture: 5, animalHusbandry: 0, commerce: {}, industry: {} } }],
     ]);
 
-    const { nextState, log } = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER);
+    const { nextState, log } = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
     const city = nextState.cities[0];
 
     expect(city.facilities.agriculture).toBe(5);
@@ -57,7 +59,7 @@ describe('resolveTurn', () => {
 
   it('treats a missing order as fully empty (facility levels unchanged, only base production occurs)', () => {
     const state = makeState();
-    const { nextState } = resolveTurn(state, new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER);
+    const { nextState } = resolveTurn(state, new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
     expect(nextState.cities[0].facilities.agriculture).toBe(0);
   });
 
@@ -65,8 +67,8 @@ describe('resolveTurn', () => {
     const state = makeState();
     const orders = new Map<string, PlayerOrder>([['p1', { investment: { agriculture: 4, animalHusbandry: 3, commerce: {}, industry: {} } }]]);
 
-    const a = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'same-seed', MEDIUM_MAP_MULTIPLIER);
-    const b = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'same-seed', MEDIUM_MAP_MULTIPLIER);
+    const a = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'same-seed', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
+    const b = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'same-seed', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
     expect(a.nextState).toEqual(b.nextState);
   });
 
@@ -79,13 +81,14 @@ describe('resolveTurn', () => {
       ACTION_POINTS_PER_TURN,
       'seed-1',
       MEDIUM_MAP_MULTIPLIER,
+      NO_GENERAL_APPEARANCE,
     );
     expect(state).toEqual(snapshot);
   });
 
   it('increments turn number and resets submittedPlayerIds', () => {
     const state = { ...makeState(), submittedPlayerIds: ['p1'] };
-    const { nextState } = resolveTurn(state, new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER);
+    const { nextState } = resolveTurn(state, new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
     expect(nextState.turnNumber).toBe(2);
     expect(nextState.submittedPlayerIds).toEqual([]);
   });
@@ -107,7 +110,7 @@ describe('resolveTurn', () => {
       ],
     ]);
 
-    const { nextState, log } = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER);
+    const { nextState, log } = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
     const entry = log[0];
 
     expect(entry.recruited).toEqual({ unitType: 'spearman', count: 5 });
@@ -119,8 +122,8 @@ describe('resolveTurn', () => {
 
   it('rolls population growth deterministically from the seed', () => {
     const state = makeState();
-    const a = resolveTurn(state, new Map(), ACTION_POINTS_PER_TURN, 'growth-seed', MEDIUM_MAP_MULTIPLIER).nextState.cities[0].population;
-    const b = resolveTurn(state, new Map(), ACTION_POINTS_PER_TURN, 'growth-seed', MEDIUM_MAP_MULTIPLIER).nextState.cities[0].population;
+    const a = resolveTurn(state, new Map(), ACTION_POINTS_PER_TURN, 'growth-seed', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE).nextState.cities[0].population;
+    const b = resolveTurn(state, new Map(), ACTION_POINTS_PER_TURN, 'growth-seed', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE).nextState.cities[0].population;
     expect(a).toBe(b);
     expect(a).toBeGreaterThanOrEqual(state.cities[0].population);
   });
@@ -135,7 +138,7 @@ describe('resolveTurn', () => {
         ['p1', { ...emptyOrder(), march: { unitType: 'spearman', count: 6, destinationNodeId: 'xiangyang' } }],
       ]);
 
-      const { nextState, log } = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER);
+      const { nextState, log } = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
 
       expect(nextState.cities[0].troops[0].count).toBe(4);
       expect(nextState.armies).toHaveLength(1);
@@ -152,7 +155,7 @@ describe('resolveTurn', () => {
         ['p1', { ...emptyOrder(), march: { unitType: 'spearman', count: 6, destinationNodeId: 'hulaoGuan' } }],
       ]);
 
-      const { nextState, log } = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER);
+      const { nextState, log } = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
 
       expect(nextState.armies[0]).toMatchObject({ currentNodeId: 'hulaoGuan', destinationNodeId: null, daysRemaining: 0 });
       expect(log[0].notes.some((n) => n.includes('출발'))).toBe(true);
@@ -168,7 +171,7 @@ describe('resolveTurn', () => {
         ['p1', { ...emptyOrder(), march: { unitType: 'spearman', count: 6, destinationNodeId: 'jianye' } }],
       ]);
 
-      const { nextState } = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER);
+      const { nextState } = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
 
       expect(nextState.cities[0].troops[0].count).toBe(10);
       expect(nextState.armies).toHaveLength(0);
@@ -191,7 +194,7 @@ describe('resolveTurn', () => {
         },
       ];
 
-      const { nextState, log } = resolveTurn(state, new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER);
+      const { nextState, log } = resolveTurn(state, new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
 
       expect(nextState.armies[0]).toMatchObject({ currentNodeId: 'hulaoGuan', destinationNodeId: null, daysRemaining: 0 });
       expect(log[0].notes.some((n) => n.includes('도착'))).toBe(true);
@@ -214,7 +217,7 @@ describe('resolveTurn', () => {
         },
       ];
 
-      const { nextState, log } = resolveTurn(state, new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER);
+      const { nextState, log } = resolveTurn(state, new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
 
       expect(nextState.armies[0].destinationNodeId).toBe('wancheng');
       expect(nextState.armies[0].daysRemaining).toBe(15);
@@ -230,10 +233,104 @@ describe('resolveTurn', () => {
 
       // small: 2 base days * 0.5 = 1 day, which is under TURN_DURATION_DAYS (5) -> arrives same turn (0 remaining)
       // large: 2 base days * 5 = 10 days, minus TURN_DURATION_DAYS (5) -> still marching afterward
-      const small = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', 0.5).nextState.armies[0].daysRemaining;
-      const large = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', 5).nextState.armies[0].daysRemaining;
+      const small = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', 0.5, NO_GENERAL_APPEARANCE).nextState.armies[0].daysRemaining;
+      const large = resolveTurn(state, orders, ACTION_POINTS_PER_TURN, 'seed-1', 5, NO_GENERAL_APPEARANCE).nextState.armies[0].daysRemaining;
 
       expect(large).toBeGreaterThan(small);
+    });
+  });
+
+  describe('generals', () => {
+    function makeDomesticGeneral(facility: 'agriculture' | 'commerce'): General {
+      return {
+        generalId: 'g1',
+        rosterId: 'test-domestic',
+        name: '테스트내정장수',
+        role: 'domestic',
+        skill: { name: '테스트특기', effectType: facility === 'agriculture' ? 'agricultureBoost' : 'commerceBoost', magnitude: 0.5, triggerChance: 1 },
+        portraitSeed: 'g1',
+        assignment: { kind: 'facility', facility },
+      };
+    }
+
+    it('boosts production when a matching domestic general is assigned to a facility', () => {
+      const withGeneral = makeState();
+      withGeneral.cities[0].generals = [makeDomesticGeneral('agriculture')];
+
+      const without = makeState();
+
+      const withResult = resolveTurn(withGeneral, new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
+      const withoutResult = resolveTurn(without, new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
+
+      expect(withResult.nextState.cities[0].warehouse.rice!).toBeGreaterThan(withoutResult.nextState.cities[0].warehouse.rice!);
+      expect(withResult.log[0].notes.some((n) => n.includes('테스트특기'))).toBe(true);
+    });
+
+    it('does not boost an unrelated facility (skill/assignment type mismatch)', () => {
+      const state = makeState();
+      state.cities[0].generals = [makeDomesticGeneral('commerce')]; // commerceBoost skill assigned to commerce, agriculture untouched
+
+      const withMismatch = resolveTurn(state, new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
+      const baseline = resolveTurn(makeState(), new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
+
+      expect(withMismatch.nextState.cities[0].warehouse.rice!).toBeCloseTo(baseline.nextState.cities[0].warehouse.rice!);
+    });
+
+    it('assigns and unassigns a general via orders, clamped into the action-point budget', () => {
+      const state = makeState();
+      state.cities[0].generals = [{ ...makeDomesticGeneral('agriculture'), assignment: null }];
+
+      const assignOrders = new Map<string, PlayerOrder>([
+        ['p1', { ...emptyOrder(), assignGeneral: { generalId: 'g1', target: { kind: 'facility', facility: 'agriculture' } } }],
+      ]);
+      const afterAssign = resolveTurn(state, assignOrders, ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE).nextState;
+      expect(afterAssign.cities[0].generals[0].assignment).toEqual({ kind: 'facility', facility: 'agriculture' });
+
+      const unassignOrders = new Map<string, PlayerOrder>([['p1', { ...emptyOrder(), unassignGeneral: { generalId: 'g1' } }]]);
+      const afterUnassign = resolveTurn({ ...afterAssign, turnNumber: 1 }, unassignOrders, ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE).nextState;
+      expect(afterUnassign.cities[0].generals[0].assignment).toBeNull();
+    });
+
+    it('boosts garrison defense when a combat general is assigned to the garrison', () => {
+      const attacker = {
+        armyId: 'a1',
+        ownerId: 'p2',
+        originCityId: 'other',
+        troops: [{ unitType: 'spearman' as const, count: 200, trainingLevel: 0 }],
+        currentNodeId: 'luoyang',
+        destinationNodeId: null,
+        daysRemaining: 0,
+        morale: 100,
+        stance: 'attack' as const,
+        fortified: false,
+      };
+
+      const defended = makeState();
+      defended.cities[0].troops = [{ unitType: 'spearman', count: 200, trainingLevel: 0 }];
+      defended.cities[0].generals = [
+        {
+          generalId: 'g1',
+          rosterId: 'test-combat',
+          name: '테스트전투장수',
+          role: 'combat',
+          skill: { name: '방어특기', effectType: 'combatPowerBoost', magnitude: 0.5, triggerChance: 1 },
+          portraitSeed: 'g1',
+          assignment: { kind: 'garrison' },
+        },
+      ];
+      defended.armies = [attacker];
+
+      const undefended = makeState();
+      undefended.cities[0].troops = [{ unitType: 'spearman', count: 200, trainingLevel: 0 }];
+      undefended.armies = [{ ...attacker }];
+
+      const withGeneral = resolveTurn(defended, new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
+      const without = resolveTurn(undefended, new Map(), ACTION_POINTS_PER_TURN, 'seed-1', MEDIUM_MAP_MULTIPLIER, NO_GENERAL_APPEARANCE);
+
+      const withGeneralAttackerCasualties = withGeneral.log[0].battles.find((b) => b.battleType === 'siege')?.opponentCasualties ?? 0;
+      const withoutAttackerCasualties = without.log[0].battles.find((b) => b.battleType === 'siege')?.opponentCasualties ?? 0;
+
+      expect(withGeneralAttackerCasualties).toBeGreaterThan(withoutAttackerCasualties);
     });
   });
 });

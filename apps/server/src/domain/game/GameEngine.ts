@@ -1,4 +1,4 @@
-import type { Army, GameCity, GameState, PlayerId, PlayerOrder, ResourceType, TurnLogEntry, Warehouse } from '@sam-simul/shared';
+import type { Army, GameCity, GeneralAssignmentTarget, GameState, PlayerId, PlayerOrder, ResourceType, TurnLogEntry, Warehouse } from '@sam-simul/shared';
 import { FORTIFICATION_MORALE_BONUS, REGIONS, RESOURCE_LABEL, TURN_DURATION_DAYS, UNIT_TYPE_LABEL, createSeededRng, getMapNode } from '@sam-simul/shared';
 import { applyDecay, applyPopulationConsumption, applyProduction, calculateAgricultureOutput, calculateCommerceOutput, calculateHusbandryOutput, calculateIndustryOutput, populationProductionMultiplier } from './economy.js';
 import { applyMarketExchange } from './market.js';
@@ -6,6 +6,9 @@ import { rollPopulationGrowth } from './population.js';
 import { applyRecruitment, applyTraining } from './troops.js';
 import { advanceArmy, createArmyFromMarchOrder } from './movement.js';
 import { resolveBattlesForTurn } from './battleOrchestration.js';
+import type { ArmyGeneralEffect } from './generals.js';
+import { applyGeneralAssignment, applyGeneralUnassignment, computeGeneralEffects, rollGeneralAppearance } from './generals.js';
+import type { GarrisonEffect } from './battleOrchestration.js';
 import { clampOrderToBudget } from './orderBudget.js';
 
 export interface ResolveTurnResult {
@@ -39,11 +42,14 @@ export function resolveTurn(
   actionPointsPerTurn: number,
   rngSeed: string,
   mapSizeMultiplier: number,
+  generalAppearanceBaseChance: number,
 ): ResolveTurnResult {
   const rng = createSeededRng(rngSeed);
   const log: TurnLogEntry[] = [];
   const newArmies: Army[] = [];
   const clampedOrders = new Map<PlayerId, PlayerOrder>();
+  const armyEffectsAll = new Map<string, ArmyGeneralEffect>();
+  const garrisonEffectsByOwner = new Map<PlayerId, GarrisonEffect>();
 
   const nextCities: GameCity[] = state.cities.map((city) => {
     const rawOrder = orders.get(city.ownerId) ?? EMPTY_ORDER;
@@ -67,15 +73,34 @@ export function resolveTurn(
       },
     };
 
+    let generals = city.generals;
+    if (order.assignGeneral) {
+      generals = applyGeneralAssignment(generals, order.assignGeneral.generalId, order.assignGeneral.target as GeneralAssignmentTarget);
+    }
+    if (order.unassignGeneral) {
+      generals = applyGeneralUnassignment(generals, order.unassignGeneral.generalId);
+    }
+
+    const newGeneral = rollGeneralAppearance(rng, generalAppearanceBaseChance, city.population, nextFacilities, generals.map((g) => g.rosterId));
+    if (newGeneral) {
+      generals = [...generals, newGeneral];
+      notes.push(`${newGeneral.name}이(가) 등용에 응했습니다. (${newGeneral.role === 'domestic' ? '내정' : '전투'} 장수, 특기: ${newGeneral.skill.name})`);
+    }
+
+    const generalEffects = computeGeneralEffects(rng, generals);
+    notes.push(...generalEffects.notes);
+    garrisonEffectsByOwner.set(city.ownerId, generalEffects.garrison);
+    for (const [armyId, effect] of generalEffects.perArmy) armyEffectsAll.set(armyId, effect);
+
     const cityWithNewFacilities: GameCity = { ...city, facilities: nextFacilities };
     const populationMultiplier = populationProductionMultiplier(city.population);
     const horseProductionMultiplier = REGIONS[getMapNode(city.nodeId)?.region ?? 'siLi']?.horseProductionMultiplier ?? 1;
 
     const produced = mergeWarehouses(
-      calculateAgricultureOutput(cityWithNewFacilities, populationMultiplier),
-      calculateHusbandryOutput(cityWithNewFacilities, populationMultiplier, horseProductionMultiplier),
-      calculateCommerceOutput(cityWithNewFacilities),
-      calculateIndustryOutput(cityWithNewFacilities),
+      scaleWarehouse(calculateAgricultureOutput(cityWithNewFacilities, populationMultiplier), generalEffects.facilityMultiplier.agriculture),
+      scaleWarehouse(calculateHusbandryOutput(cityWithNewFacilities, populationMultiplier, horseProductionMultiplier), generalEffects.facilityMultiplier.animalHusbandry),
+      scaleWarehouse(calculateCommerceOutput(cityWithNewFacilities), generalEffects.facilityMultiplier.commerce),
+      scaleWarehouse(calculateIndustryOutput(cityWithNewFacilities), generalEffects.facilityMultiplier.industry),
     );
 
     let warehouse = applyProduction(city.warehouse, produced);
@@ -153,6 +178,7 @@ export function resolveTurn(
       facilities: nextFacilities,
       warehouse: roundWarehouse(warehouse),
       troops,
+      generals,
     };
   });
 
@@ -161,7 +187,10 @@ export function resolveTurn(
   const advancedArmies: Army[] = [];
   for (const army of armiesWithOrders) {
     const wasTraveling = army.destinationNodeId !== null;
-    const advanced = advanceArmy(army);
+    const hasCavalry = army.troops.some((t) => t.unitType === 'cavalry');
+    const marchSpeedBoost = hasCavalry ? (armyEffectsAll.get(army.armyId)?.marchSpeedBoostFraction ?? 0) : 0;
+    const sped = marchSpeedBoost > 0 ? { ...army, daysRemaining: Math.max(0, Math.round(army.daysRemaining * (1 - marchSpeedBoost))) } : army;
+    const advanced = advanceArmy(sped);
     advancedArmies.push(advanced);
 
     if (wasTraveling && advanced.destinationNodeId === null) {
@@ -171,7 +200,7 @@ export function resolveTurn(
     }
   }
 
-  const battleResult = resolveBattlesForTurn(nextCities, advancedArmies, TURN_DURATION_DAYS, rng);
+  const battleResult = resolveBattlesForTurn(nextCities, advancedArmies, TURN_DURATION_DAYS, rng, armyEffectsAll, garrisonEffectsByOwner);
   for (const [playerId, accumulator] of battleResult.notesByPlayer) {
     const entry = log.find((l) => l.playerId === playerId);
     if (!entry) continue;
@@ -202,6 +231,15 @@ function applyArmyOrder(army: Army, order: PlayerOrder | undefined): Army {
     next = { ...next, fortified: true, morale: Math.min(100, next.morale + FORTIFICATION_MORALE_BONUS) };
   }
   return next;
+}
+
+function scaleWarehouse(warehouse: Warehouse, multiplier: number): Warehouse {
+  if (multiplier === 1) return warehouse;
+  const out: Warehouse = {};
+  for (const [resource, amount] of Object.entries(warehouse) as [ResourceType, number][]) {
+    out[resource] = amount * multiplier;
+  }
+  return out;
 }
 
 function round(value: number): number {

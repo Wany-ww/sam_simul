@@ -1,5 +1,13 @@
 import type { PlayerOrder } from '@sam-simul/shared';
-import { ARMY_STANCE_ORDER_POINT_COST, FORTIFY_ORDER_POINT_COST, MARCH_ORDER_POINT_COST, MARKET_EXCHANGE_POINT_COST, RECRUIT_POINT_COST_PER_UNIT } from '@sam-simul/shared';
+import {
+  ARMY_STANCE_ORDER_POINT_COST,
+  ASSIGN_GENERAL_ORDER_POINT_COST,
+  FORTIFY_ORDER_POINT_COST,
+  MARCH_ORDER_POINT_COST,
+  MARKET_EXCHANGE_POINT_COST,
+  RECRUIT_POINT_COST_PER_UNIT,
+  UNASSIGN_GENERAL_ORDER_POINT_COST,
+} from '@sam-simul/shared';
 
 /**
  * Clamps a submitted order to the action-point budget by walking a fixed
@@ -71,6 +79,18 @@ export function clampOrderToBudget(order: PlayerOrder, budget: number): PlayerOr
     remaining -= MARKET_EXCHANGE_POINT_COST;
   }
 
+  let assignGeneral: PlayerOrder['assignGeneral'];
+  if (order.assignGeneral && remaining >= ASSIGN_GENERAL_ORDER_POINT_COST) {
+    assignGeneral = order.assignGeneral;
+    remaining -= ASSIGN_GENERAL_ORDER_POINT_COST;
+  }
+
+  let unassignGeneral: PlayerOrder['unassignGeneral'];
+  if (order.unassignGeneral && remaining >= UNASSIGN_GENERAL_ORDER_POINT_COST) {
+    unassignGeneral = order.unassignGeneral;
+    remaining -= UNASSIGN_GENERAL_ORDER_POINT_COST;
+  }
+
   return {
     investment: {
       agriculture,
@@ -84,5 +104,7 @@ export function clampOrderToBudget(order: PlayerOrder, budget: number): PlayerOr
     march,
     armyStance,
     fortify,
+    assignGeneral,
+    unassignGeneral,
   };
 }

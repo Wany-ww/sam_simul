@@ -2,6 +2,14 @@ import type { Army, BattleLogEntry, BattleType, GameCity, MapNodeId, PlayerId, R
 import { MAX_WALL_DURABILITY, getMapNode } from '@sam-simul/shared';
 import type { CombatSide } from './combat.js';
 import { resolveBattle, resolveSiege, totalTroopCount } from './combat.js';
+import type { ArmyGeneralEffect } from './generals.js';
+
+const NO_ARMY_EFFECT: ArmyGeneralEffect = { combatPowerMultiplier: 1, moraleBonus: 0, marchSpeedBoostFraction: 0 };
+export interface GarrisonEffect {
+  combatPowerMultiplier: number;
+  moraleBonus: number;
+}
+const NO_GARRISON_EFFECT: GarrisonEffect = { combatPowerMultiplier: 1, moraleBonus: 0 };
 
 export interface BattleNoteAccumulator {
   notes: string[];
@@ -33,6 +41,8 @@ export function resolveBattlesForTurn(
   armies: Army[],
   maxDaysPerTurn: number,
   rng: Rng,
+  armyEffects: Map<string, ArmyGeneralEffect> = new Map(),
+  garrisonEffects: Map<PlayerId, GarrisonEffect> = new Map(),
 ): { cities: GameCity[]; armies: Army[]; notesByPlayer: Map<PlayerId, BattleNoteAccumulator> } {
   const notesByPlayer = new Map<PlayerId, BattleNoteAccumulator>();
   const accumulatorFor = (playerId: PlayerId): BattleNoteAccumulator => {
@@ -58,12 +68,16 @@ export function resolveBattlesForTurn(
     armyIndexesByNode.set(army.currentNodeId, byOwner);
   });
 
-  const poolSide = (indexes: number[]): CombatSide => ({
-    troops: mergeStacks(indexes.map((i) => nextArmies[i].troops)),
-    morale: average(indexes.map((i) => nextArmies[i].morale)),
-    stance: nextArmies[indexes[0]].stance,
-    fortified: indexes.some((i) => nextArmies[i].fortified),
-  });
+  const poolSide = (indexes: number[]): CombatSide => {
+    const effectsForIndexes = indexes.map((i) => armyEffects.get(nextArmies[i].armyId) ?? NO_ARMY_EFFECT);
+    return {
+      troops: mergeStacks(indexes.map((i) => nextArmies[i].troops)),
+      morale: average(indexes.map((i, n) => nextArmies[i].morale + effectsForIndexes[n].moraleBonus)),
+      stance: nextArmies[indexes[0]].stance,
+      fortified: indexes.some((i) => nextArmies[i].fortified),
+      powerMultiplier: average(effectsForIndexes.map((e) => e.combatPowerMultiplier)),
+    };
+  };
   const consolidate = (indexes: number[], finalTroops: TroopStack[], finalMorale: number): void => {
     const [keepIndex, ...dropIndexes] = indexes;
     nextArmies[keepIndex] = { ...nextArmies[keepIndex], troops: finalTroops, morale: finalMorale };
@@ -80,7 +94,8 @@ export function resolveBattlesForTurn(
     if (homeCity && foreignOwners.length > 0) {
       const attackerOwnerId = foreignOwners[0];
       const attackerIndexes = byOwner.get(attackerOwnerId)!;
-      resolveSiegeAtNode(homeCity, attackerOwnerId, attackerIndexes, nodeId, maxDaysPerTurn, rng, { poolSide, consolidate, eliminate, note, logBattle });
+      const garrisonEffect = garrisonEffects.get(homeCity.ownerId) ?? NO_GARRISON_EFFECT;
+      resolveSiegeAtNode(homeCity, attackerOwnerId, attackerIndexes, nodeId, maxDaysPerTurn, rng, garrisonEffect, { poolSide, consolidate, eliminate, note, logBattle });
       continue;
     }
 
@@ -102,7 +117,16 @@ interface Helpers {
   logBattle: (playerId: PlayerId, entry: BattleLogEntry) => void;
 }
 
-function resolveSiegeAtNode(homeCity: GameCity, attackerOwnerId: PlayerId, attackerIndexes: number[], nodeId: MapNodeId, maxDays: number, rng: Rng, h: Helpers): void {
+function resolveSiegeAtNode(
+  homeCity: GameCity,
+  attackerOwnerId: PlayerId,
+  attackerIndexes: number[],
+  nodeId: MapNodeId,
+  maxDays: number,
+  rng: Rng,
+  garrisonEffect: GarrisonEffect,
+  h: Helpers,
+): void {
   const defenderOwnerId = homeCity.ownerId;
   const attackerSide = h.poolSide(attackerIndexes);
   const cityName = homeCity.name;
@@ -118,7 +142,13 @@ function resolveSiegeAtNode(homeCity: GameCity, attackerOwnerId: PlayerId, attac
     return;
   }
 
-  const defenderSide: CombatSide = { troops: [...homeCity.troops], morale: homeCity.garrisonMorale, stance: 'defend', fortified: false };
+  const defenderSide: CombatSide = {
+    troops: [...homeCity.troops],
+    morale: homeCity.garrisonMorale + garrisonEffect.moraleBonus,
+    stance: 'defend',
+    fortified: false,
+    powerMultiplier: garrisonEffect.combatPowerMultiplier,
+  };
   const result = resolveSiege(attackerSide, defenderSide, homeCity.wallDurability, maxDays, rng);
 
   const attackerOutcome = result.outcome === 'attackerVictory' ? 'won' : result.outcome === 'defenderVictory' ? 'lost' : 'ongoing';

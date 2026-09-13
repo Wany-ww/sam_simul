@@ -28,6 +28,7 @@ export interface CombatSide {
   morale: number;
   stance: ArmyStance;
   fortified: boolean;
+  powerMultiplier?: number; // from an assigned general's combat skill, default 1
 }
 
 export function totalTroopCount(troops: TroopStack[]): number {
@@ -50,6 +51,7 @@ export function computeCombatPower(side: CombatSide, isSiegeAttacker: boolean): 
   power *= moraleMultiplier;
 
   if (side.stance === 'attack') power *= STANCE_ATTACK_DAMAGE_MULTIPLIER;
+  power *= side.powerMultiplier ?? 1;
 
   return power;
 }
