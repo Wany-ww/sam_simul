@@ -32,6 +32,9 @@ export function createArmyFromMarchOrder(city: GameCity, order: MarchOrder, mapS
     currentNodeId: city.nodeId,
     destinationNodeId: order.destinationNodeId,
     daysRemaining,
+    morale: city.garrisonMorale,
+    stance: 'defend',
+    fortified: false,
   };
 
   return { army, troops: nextTroops };

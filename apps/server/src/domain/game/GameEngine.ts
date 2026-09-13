@@ -1,10 +1,11 @@
 import type { Army, GameCity, GameState, PlayerId, PlayerOrder, ResourceType, TurnLogEntry, Warehouse } from '@sam-simul/shared';
-import { REGIONS, RESOURCE_LABEL, UNIT_TYPE_LABEL, createSeededRng, getMapNode } from '@sam-simul/shared';
+import { FORTIFICATION_MORALE_BONUS, REGIONS, RESOURCE_LABEL, TURN_DURATION_DAYS, UNIT_TYPE_LABEL, createSeededRng, getMapNode } from '@sam-simul/shared';
 import { applyDecay, applyPopulationConsumption, applyProduction, calculateAgricultureOutput, calculateCommerceOutput, calculateHusbandryOutput, calculateIndustryOutput, populationProductionMultiplier } from './economy.js';
 import { applyMarketExchange } from './market.js';
 import { rollPopulationGrowth } from './population.js';
 import { applyRecruitment, applyTraining } from './troops.js';
 import { advanceArmy, createArmyFromMarchOrder } from './movement.js';
+import { resolveBattlesForTurn } from './battleOrchestration.js';
 import { clampOrderToBudget } from './orderBudget.js';
 
 export interface ResolveTurnResult {
@@ -42,10 +43,12 @@ export function resolveTurn(
   const rng = createSeededRng(rngSeed);
   const log: TurnLogEntry[] = [];
   const newArmies: Army[] = [];
+  const clampedOrders = new Map<PlayerId, PlayerOrder>();
 
   const nextCities: GameCity[] = state.cities.map((city) => {
     const rawOrder = orders.get(city.ownerId) ?? EMPTY_ORDER;
     const order = clampOrderToBudget(rawOrder, actionPointsPerTurn);
+    clampedOrders.set(city.ownerId, order);
     const notes: string[] = [];
 
     const nextFacilities = {
@@ -140,6 +143,7 @@ export function resolveTurn(
       marketExchange,
       recruited,
       trained,
+      battles: [],
       notes,
     });
 
@@ -152,11 +156,13 @@ export function resolveTurn(
     };
   });
 
-  const nextArmies: Army[] = [];
-  for (const army of [...state.armies, ...newArmies]) {
+  const armiesWithOrders = [...state.armies, ...newArmies].map((army) => applyArmyOrder(army, clampedOrders.get(army.ownerId)));
+
+  const advancedArmies: Army[] = [];
+  for (const army of armiesWithOrders) {
     const wasTraveling = army.destinationNodeId !== null;
     const advanced = advanceArmy(army);
-    nextArmies.push(advanced);
+    advancedArmies.push(advanced);
 
     if (wasTraveling && advanced.destinationNodeId === null) {
       const entry = log.find((l) => l.playerId === army.ownerId);
@@ -165,16 +171,37 @@ export function resolveTurn(
     }
   }
 
+  const battleResult = resolveBattlesForTurn(nextCities, advancedArmies, TURN_DURATION_DAYS, rng);
+  for (const [playerId, accumulator] of battleResult.notesByPlayer) {
+    const entry = log.find((l) => l.playerId === playerId);
+    if (!entry) continue;
+    entry.battles.push(...accumulator.battles);
+    entry.notes.push(...accumulator.notes);
+  }
+
   const nextState: GameState = {
     ...state,
     turnNumber: state.turnNumber + 1,
-    cities: nextCities,
-    armies: nextArmies,
+    cities: battleResult.cities,
+    armies: battleResult.armies,
     submittedPlayerIds: [],
     lastTurnLog: log,
   };
 
   return { nextState, log };
+}
+
+function applyArmyOrder(army: Army, order: PlayerOrder | undefined): Army {
+  if (!order) return army;
+
+  let next = army;
+  if (order.armyStance && order.armyStance.armyId === army.armyId) {
+    next = { ...next, stance: order.armyStance.stance };
+  }
+  if (order.fortify && order.fortify.armyId === army.armyId) {
+    next = { ...next, fortified: true, morale: Math.min(100, next.morale + FORTIFICATION_MORALE_BONUS) };
+  }
+  return next;
 }
 
 function round(value: number): number {

@@ -14,6 +14,9 @@ export function CityOverview({ city }: { city: GameCity }) {
           위치: {node?.name ?? city.nodeId} ({region?.name ?? '?'})
         </li>
         <li>인구: {Math.round(city.population)}</li>
+        <li>
+          수비대 사기: {round(city.garrisonMorale)} · 성벽 내구도: {round(city.wallDurability)}
+        </li>
         <li>농업 수준: {round(city.facilities.agriculture)}</li>
         <li>목축업 수준: {round(city.facilities.animalHusbandry)}</li>
         <li>

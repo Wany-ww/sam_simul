@@ -1,5 +1,5 @@
 import type { GameCity, GameState, PlayerId, PlayerOrder, Room, RoomId, Warehouse } from '@sam-simul/shared';
-import { ACTION_POINTS_PER_TURN, GRAIN_RESOURCES, MAP_SIZE_TRAVEL_DAY_MULTIPLIER, STARTING_CITY_NODE_IDS, STARTING_GOLD, STARTING_GRAIN_PER_TYPE, STARTING_POPULATION } from '@sam-simul/shared';
+import { ACTION_POINTS_PER_TURN, GRAIN_RESOURCES, MAP_SIZE_TRAVEL_DAY_MULTIPLIER, MAX_WALL_DURABILITY, STARTING_CITY_NODE_IDS, STARTING_GOLD, STARTING_GRAIN_PER_TYPE, STARTING_MORALE, STARTING_POPULATION } from '@sam-simul/shared';
 import { resolveTurn } from './GameEngine.js';
 import type { AppServer } from '../../sockets/types.js';
 
@@ -41,6 +41,8 @@ export class GameSessionManager {
       },
       warehouse: startingWarehouse(),
       troops: [],
+      garrisonMorale: STARTING_MORALE,
+      wallDurability: MAX_WALL_DURABILITY,
     }));
 
     const state: GameState = {

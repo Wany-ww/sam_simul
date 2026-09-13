@@ -30,6 +30,8 @@ function makeState(): GameState {
         },
         warehouse: { rice: 30, wheat: 30, potato: 30, gold: 50 },
         troops: [],
+        garrisonMorale: 100,
+        wallDurability: 500,
       },
     ],
     armies: [],
@@ -183,6 +185,9 @@ describe('resolveTurn', () => {
           currentNodeId: 'luoyang',
           destinationNodeId: 'hulaoGuan',
           daysRemaining: 2, // luoyang->hulaoGuan is 2 base days; TURN_DURATION_DAYS is 5, so this arrives this turn
+          morale: 100,
+          stance: 'defend',
+          fortified: false,
         },
       ];
 
@@ -203,6 +208,9 @@ describe('resolveTurn', () => {
           currentNodeId: 'luoyang',
           destinationNodeId: 'wancheng',
           daysRemaining: 20,
+          morale: 100,
+          stance: 'defend',
+          fortified: false,
         },
       ];
 

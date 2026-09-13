@@ -1,6 +1,6 @@
 import type { PlayerId } from './session.js';
 import type { RoomId } from './room.js';
-import type { Army, MapNodeId, MarchOrder } from './map.js';
+import type { Army, ArmyStanceOrder, FortifyOrder, MapNodeId, MarchOrder } from './map.js';
 
 export type CityId = string;
 
@@ -75,6 +75,8 @@ export interface GameCity {
   facilities: FacilityLevels;
   warehouse: Warehouse;
   troops: TroopStack[];
+  garrisonMorale: number; // the city's own defending troops, separate from any visiting Army's morale
+  wallDurability: number; // 0 means the city falls to a besieging attacker
 }
 
 export interface CommerceInvestment {
@@ -118,6 +120,21 @@ export interface PlayerOrder {
   recruit?: RecruitOrder;
   train?: TrainOrder;
   march?: MarchOrder;
+  armyStance?: ArmyStanceOrder;
+  fortify?: FortifyOrder;
+}
+
+export type BattleType = 'field' | 'siege';
+
+export interface BattleLogEntry {
+  nodeId: MapNodeId;
+  battleType: BattleType;
+  opponentPlayerId: PlayerId;
+  daysFought: number;
+  ownCasualties: number;
+  opponentCasualties: number;
+  outcome: 'ongoing' | 'won' | 'lost';
+  wallDurabilityRemaining?: number; // present only for the siege attacker/defender
 }
 
 export interface TurnLogEntry {
@@ -130,6 +147,7 @@ export interface TurnLogEntry {
   marketExchange?: { from: ResourceType; amountIn: number; amountOut: number };
   recruited?: { unitType: UnitType; count: number };
   trained?: { unitType: UnitType; levelsGained: number };
+  battles: BattleLogEntry[];
   notes: string[];
 }
 

@@ -1,7 +1,19 @@
 import { useEffect, useState } from 'react';
-import type { GameCity, GameState, MapNodeId, PlayerOrder, ResourceType, RoomId, UnitType } from '@sam-simul/shared';
-import { MARCH_ORDER_POINT_COST, MARKET_EXCHANGE_POINT_COST, RECRUIT_POINT_COST_PER_UNIT, RESOURCE_LABEL, UNIT_TYPE_LABEL, getAdjacentNodeIds, getMapNode } from '@sam-simul/shared';
+import type { Army, ArmyStance, GameCity, GameState, MapNodeId, PlayerOrder, ResourceType, RoomId, UnitType } from '@sam-simul/shared';
+import {
+  ARMY_STANCE_ORDER_POINT_COST,
+  FORTIFY_ORDER_POINT_COST,
+  MARCH_ORDER_POINT_COST,
+  MARKET_EXCHANGE_POINT_COST,
+  RECRUIT_POINT_COST_PER_UNIT,
+  RESOURCE_LABEL,
+  UNIT_TYPE_LABEL,
+  getAdjacentNodeIds,
+  getMapNode,
+} from '@sam-simul/shared';
 import { getSocket } from '../../net/socket';
+
+const STANCE_LABEL: Record<ArmyStance, string> = { attack: '공격', defend: '방어' };
 
 const UNIT_TYPES: UnitType[] = ['spearman', 'crossbowman', 'cavalry', 'engineer'];
 const TRADEABLE_RESOURCES: ResourceType[] = ['rice', 'wheat', 'potato', 'cotton', 'hemp', 'cattle', 'horse', 'pig', 'leather'];
@@ -25,6 +37,9 @@ interface Draft {
   marchUnitType: UnitType;
   marchCount: number;
   marchDestinationNodeId: MapNodeId | '';
+  stanceArmyId: string;
+  stance: ArmyStance | '';
+  fortifyArmyId: string;
 }
 
 const EMPTY_DRAFT: Draft = {
@@ -46,6 +61,9 @@ const EMPTY_DRAFT: Draft = {
   marchUnitType: 'spearman',
   marchCount: 0,
   marchDestinationNodeId: '',
+  stanceArmyId: '',
+  stance: '',
+  fortifyArmyId: '',
 };
 
 function totalSpent(d: Draft): number {
@@ -62,7 +80,9 @@ function totalSpent(d: Draft): number {
     d.recruitCount * RECRUIT_POINT_COST_PER_UNIT +
     d.trainPoints +
     (d.marketAmount > 0 ? MARKET_EXCHANGE_POINT_COST : 0) +
-    (d.marchCount > 0 && d.marchDestinationNodeId ? MARCH_ORDER_POINT_COST : 0)
+    (d.marchCount > 0 && d.marchDestinationNodeId ? MARCH_ORDER_POINT_COST : 0) +
+    (d.stanceArmyId && d.stance ? ARMY_STANCE_ORDER_POINT_COST : 0) +
+    (d.fortifyArmyId ? FORTIFY_ORDER_POINT_COST : 0)
   );
 }
 
@@ -78,18 +98,22 @@ function buildOrder(d: Draft): PlayerOrder {
     train: d.trainPoints > 0 ? { unitType: d.trainUnitType, pointsInvested: d.trainPoints } : undefined,
     marketExchange: d.marketAmount > 0 ? { from: d.marketFrom, amount: d.marketAmount } : undefined,
     march: d.marchCount > 0 && d.marchDestinationNodeId ? { unitType: d.marchUnitType, count: d.marchCount, destinationNodeId: d.marchDestinationNodeId } : undefined,
+    armyStance: d.stanceArmyId && d.stance ? { armyId: d.stanceArmyId, stance: d.stance } : undefined,
+    fortify: d.fortifyArmyId ? { armyId: d.fortifyArmyId } : undefined,
   };
 }
 
 export function OrderForm({
   roomId,
   city,
+  armies,
   actionPointsPerTurn,
   disabled,
   onSubmit,
 }: {
   roomId: RoomId;
   city: GameCity;
+  armies: Army[];
   actionPointsPerTurn: GameState['actionPointsPerTurn'];
   disabled: boolean;
   onSubmit: () => void;
@@ -282,9 +306,55 @@ export function OrderForm({
         </div>
       )}
 
+      <h3>진형 / 요새</h3>
+      {armies.length === 0 ? (
+        <p className="muted">보유한 부대가 없습니다.</p>
+      ) : (
+        <div className="settings-grid">
+          <label>
+            태세 변경 대상
+            <select value={draft.stanceArmyId} disabled={disabled} onChange={(e) => setDraft({ ...draft, stanceArmyId: e.target.value })}>
+              <option value="">선택 안 함</option>
+              {armies.map((a) => (
+                <option key={a.armyId} value={a.armyId}>
+                  {armyLabel(a)}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            태세
+            <select value={draft.stance} disabled={disabled} onChange={(e) => setDraft({ ...draft, stance: e.target.value as ArmyStance })}>
+              <option value="">선택 안 함</option>
+              <option value="defend">{STANCE_LABEL.defend}</option>
+              <option value="attack">{STANCE_LABEL.attack}</option>
+            </select>
+          </label>
+          <label>
+            요새 구축 대상
+            <select value={draft.fortifyArmyId} disabled={disabled} onChange={(e) => setDraft({ ...draft, fortifyArmyId: e.target.value })}>
+              <option value="">선택 안 함</option>
+              {armies
+                .filter((a) => !a.fortified)
+                .map((a) => (
+                  <option key={a.armyId} value={a.armyId}>
+                    {armyLabel(a)}
+                  </option>
+                ))}
+            </select>
+          </label>
+        </div>
+      )}
+
       <button onClick={submit} disabled={disabled || overBudget}>
         {disabled ? '제출 완료' : '명령 제출'}
       </button>
     </div>
   );
+}
+
+function armyLabel(army: Army): string {
+  const locationName = getMapNode(army.currentNodeId)?.name ?? army.currentNodeId;
+  const summary = army.troops.map((t) => `${UNIT_TYPE_LABEL[t.unitType]} ${t.count}`).join(', ');
+  return `${locationName}: ${summary}`;
 }

@@ -59,7 +59,7 @@ export function GameScreen() {
             <CityOverview city={myCity} />
             <ArmiesPanel armies={myArmies} />
           </div>
-          <OrderForm roomId={gameState.roomId} city={myCity} actionPointsPerTurn={gameState.actionPointsPerTurn} disabled={hasSubmittedThisTurn} onSubmit={markSubmitted} />
+          <OrderForm roomId={gameState.roomId} city={myCity} armies={myArmies} actionPointsPerTurn={gameState.actionPointsPerTurn} disabled={hasSubmittedThisTurn} onSubmit={markSubmitted} />
         </div>
       )}
     </div>

@@ -18,6 +18,8 @@ function makeCity(overrides: Partial<GameCity> = {}): GameCity {
     },
     warehouse: {},
     troops: [],
+    garrisonMorale: 100,
+    wallDurability: 500,
     ...overrides,
   };
 }

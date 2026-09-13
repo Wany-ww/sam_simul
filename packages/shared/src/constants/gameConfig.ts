@@ -133,3 +133,48 @@ export const MAX_TRAINING_LEVEL = 100;
 // Phase 4: map & movement.
 export const TURN_DURATION_DAYS = 5; // how many in-game march days one turn resolution advances
 export const MARCH_ORDER_POINT_COST = 1;
+
+// Phase 5: combat core. Fought as daily sub-ticks (up to TURN_DURATION_DAYS
+// per turn) rather than one batch roll per turn, so morale/panic/rout can
+// track the spec's "하루마다 사기 감소" per-day cadence. Uses the 4 base unit
+// types only -- specialized variants (장창병/경기병 etc.) unlock in Phase 6
+// once armory tech gating and generals exist.
+export const STARTING_MORALE = 100;
+export const MAX_WALL_DURABILITY = 500;
+
+export const UNIT_COMBAT_VALUE: Record<UnitType, number> = {
+  spearman: 3,
+  crossbowman: 4,
+  cavalry: 5,
+  engineer: 1,
+};
+// Combat value while attacking a city (replaces UNIT_COMBAT_VALUE entirely
+// in that context): already encodes the spec's "attack power reduced to 1/3,
+// cavalry reduced much further, engineers have high siege value" -- there is
+// no separate flat siege penalty multiplier layered on top of this table.
+export const UNIT_SIEGE_VALUE: Record<UnitType, number> = {
+  spearman: 1,
+  crossbowman: 1,
+  cavalry: 0.5,
+  engineer: 4,
+};
+
+export const TRAINING_COMBAT_BONUS_PER_LEVEL = 0.01; // +1% combat power per training level
+export const MORALE_COMBAT_MULTIPLIER_MIN = 0.3; // power scales linearly from this (morale 0) up to 1x (morale 100)
+
+export const STANCE_ATTACK_DAMAGE_MULTIPLIER = 1.25;
+export const STANCE_ATTACK_MORALE_GAIN = 3; // per day, for the attacking-stance side
+export const STANCE_DEFEND_DAMAGE_TAKEN_MULTIPLIER = 0.75;
+export const FORTIFICATION_DAMAGE_TAKEN_MULTIPLIER = 0.7;
+
+export const DAILY_CASUALTY_COEFFICIENT = 0.05; // fraction of the opponent's effective power converted to casualties per day
+export const MORALE_DAILY_DECAY = 3;
+export const PANIC_LOSS_FRACTION_THRESHOLD = 0.15; // losing more than this fraction of one's force in a single day triggers panic
+export const PANIC_MORALE_PENALTY = 15;
+export const SIEGE_DEFENDER_MORALE_DAILY_PENALTY = 5; // extra morale loss for the besieged side, on top of the normal daily decay
+export const ROUT_TROOP_THRESHOLD = 5; // a side at or below this troop count routs (eliminated) immediately
+export const WALL_DAMAGE_COEFFICIENT = 0.1; // fraction of the siege attacker's daily power applied directly to wallDurability
+
+export const ARMY_STANCE_ORDER_POINT_COST = 1;
+export const FORTIFY_ORDER_POINT_COST = 2;
+export const FORTIFICATION_MORALE_BONUS = 10; // one-time, applied when fortifying

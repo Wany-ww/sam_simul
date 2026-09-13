@@ -17,6 +17,8 @@ function makeCity(overrides: Partial<GameCity> = {}): GameCity {
     },
     warehouse: {},
     troops: [{ unitType: 'spearman', count: 10, trainingLevel: 5 }],
+    garrisonMorale: 100,
+    wallDurability: 500,
     ...overrides,
   };
 }
@@ -61,6 +63,9 @@ describe('advanceArmy', () => {
     currentNodeId: 'luoyang',
     destinationNodeId: 'wancheng',
     daysRemaining: 12,
+    morale: 100,
+    stance: 'defend' as const,
+    fortified: false,
   };
 
   it('decrements days remaining without arriving if the trip is not yet complete', () => {

@@ -30,6 +30,8 @@ export interface Region {
   horseProductionMultiplier: number; // e.g. Bingzhou/Xiliang start with strong cavalry development
 }
 
+export type ArmyStance = 'attack' | 'defend';
+
 export interface Army {
   armyId: string;
   ownerId: PlayerId;
@@ -38,10 +40,22 @@ export interface Army {
   currentNodeId: MapNodeId;
   destinationNodeId: MapNodeId | null; // null when not marching
   daysRemaining: number; // 0 when stationary/arrived
+  morale: number; // 0..100+
+  stance: ArmyStance;
+  fortified: boolean;
 }
 
 export interface MarchOrder {
   unitType: UnitType;
   count: number;
   destinationNodeId: MapNodeId;
+}
+
+export interface ArmyStanceOrder {
+  armyId: string;
+  stance: ArmyStance;
+}
+
+export interface FortifyOrder {
+  armyId: string;
 }
