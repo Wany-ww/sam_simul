@@ -5,3 +5,7 @@ build/
 .env.local
 *.log
 .DS_Store
+
+# Copyrighted reference data used to derive names only -- never commit the
+# source spreadsheet itself (contains another game's proprietary dataset).
+전체무장.xlsx
