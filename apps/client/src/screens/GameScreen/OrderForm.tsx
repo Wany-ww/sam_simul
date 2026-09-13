@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import type { GameState, PlayerOrder, ResourceType, RoomId, UnitType } from '@sam-simul/shared';
-import { MARKET_EXCHANGE_POINT_COST, RECRUIT_POINT_COST_PER_UNIT, RESOURCE_LABEL, UNIT_TYPE_LABEL } from '@sam-simul/shared';
+import { useEffect, useState } from 'react';
+import type { GameCity, GameState, MapNodeId, PlayerOrder, ResourceType, RoomId, UnitType } from '@sam-simul/shared';
+import { MARCH_ORDER_POINT_COST, MARKET_EXCHANGE_POINT_COST, RECRUIT_POINT_COST_PER_UNIT, RESOURCE_LABEL, UNIT_TYPE_LABEL, getAdjacentNodeIds, getMapNode } from '@sam-simul/shared';
 import { getSocket } from '../../net/socket';
 
 const UNIT_TYPES: UnitType[] = ['spearman', 'crossbowman', 'cavalry', 'engineer'];
@@ -22,6 +22,9 @@ interface Draft {
   trainPoints: number;
   marketFrom: ResourceType;
   marketAmount: number;
+  marchUnitType: UnitType;
+  marchCount: number;
+  marchDestinationNodeId: MapNodeId | '';
 }
 
 const EMPTY_DRAFT: Draft = {
@@ -40,6 +43,9 @@ const EMPTY_DRAFT: Draft = {
   trainPoints: 0,
   marketFrom: 'rice',
   marketAmount: 0,
+  marchUnitType: 'spearman',
+  marchCount: 0,
+  marchDestinationNodeId: '',
 };
 
 function totalSpent(d: Draft): number {
@@ -55,7 +61,8 @@ function totalSpent(d: Draft): number {
     d.publicWorks +
     d.recruitCount * RECRUIT_POINT_COST_PER_UNIT +
     d.trainPoints +
-    (d.marketAmount > 0 ? MARKET_EXCHANGE_POINT_COST : 0)
+    (d.marketAmount > 0 ? MARKET_EXCHANGE_POINT_COST : 0) +
+    (d.marchCount > 0 && d.marchDestinationNodeId ? MARCH_ORDER_POINT_COST : 0)
   );
 }
 
@@ -70,16 +77,19 @@ function buildOrder(d: Draft): PlayerOrder {
     recruit: d.recruitCount > 0 ? { unitType: d.recruitUnitType, count: d.recruitCount } : undefined,
     train: d.trainPoints > 0 ? { unitType: d.trainUnitType, pointsInvested: d.trainPoints } : undefined,
     marketExchange: d.marketAmount > 0 ? { from: d.marketFrom, amount: d.marketAmount } : undefined,
+    march: d.marchCount > 0 && d.marchDestinationNodeId ? { unitType: d.marchUnitType, count: d.marchCount, destinationNodeId: d.marchDestinationNodeId } : undefined,
   };
 }
 
 export function OrderForm({
   roomId,
+  city,
   actionPointsPerTurn,
   disabled,
   onSubmit,
 }: {
   roomId: RoomId;
+  city: GameCity;
   actionPointsPerTurn: GameState['actionPointsPerTurn'];
   disabled: boolean;
   onSubmit: () => void;
@@ -87,6 +97,19 @@ export function OrderForm({
   const [draft, setDraft] = useState<Draft>(EMPTY_DRAFT);
   const spent = totalSpent(draft);
   const overBudget = spent > actionPointsPerTurn;
+  const adjacentNodeIds = getAdjacentNodeIds(city.nodeId);
+  const availableUnitTypes = city.troops.filter((t) => t.count > 0).map((t) => t.unitType);
+
+  // The march unit-type <select> only offers unit types the city actually
+  // has. If the drafted value isn't one of them (e.g. still the initial
+  // default), keep it in sync -- otherwise the select would visually show a
+  // valid-looking option while silently submitting a stale, invalid one.
+  useEffect(() => {
+    if (availableUnitTypes.length > 0 && !availableUnitTypes.includes(draft.marchUnitType)) {
+      setDraft((d) => ({ ...d, marchUnitType: availableUnitTypes[0] }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [availableUnitTypes.join(',')]);
 
   function field<K extends keyof Draft>(key: K) {
     return {
@@ -217,6 +240,47 @@ export function OrderForm({
           <input type="number" min={0} disabled={disabled} {...field('trainPoints')} />
         </label>
       </div>
+
+      <h3>행군</h3>
+      {availableUnitTypes.length === 0 ? (
+        <p className="muted">행군을 보낼 병력이 없습니다.</p>
+      ) : (
+        <div className="settings-grid">
+          <label>
+            병종
+            <select
+              value={draft.marchUnitType}
+              disabled={disabled}
+              onChange={(e) => setDraft({ ...draft, marchUnitType: e.target.value as UnitType })}
+            >
+              {availableUnitTypes.map((u) => (
+                <option key={u} value={u}>
+                  {UNIT_TYPE_LABEL[u]}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            인원
+            <input type="number" min={0} disabled={disabled} {...field('marchCount')} />
+          </label>
+          <label>
+            목적지
+            <select
+              value={draft.marchDestinationNodeId}
+              disabled={disabled}
+              onChange={(e) => setDraft({ ...draft, marchDestinationNodeId: e.target.value })}
+            >
+              <option value="">선택 안 함</option>
+              {adjacentNodeIds.map((nodeId) => (
+                <option key={nodeId} value={nodeId}>
+                  {getMapNode(nodeId)?.name ?? nodeId}
+                </option>
+              ))}
+            </select>
+          </label>
+        </div>
+      )}
 
       <button onClick={submit} disabled={disabled || overBudget}>
         {disabled ? '제출 완료' : '명령 제출'}

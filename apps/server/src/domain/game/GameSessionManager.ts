@@ -1,5 +1,5 @@
 import type { GameCity, GameState, PlayerId, PlayerOrder, Room, RoomId, Warehouse } from '@sam-simul/shared';
-import { ACTION_POINTS_PER_TURN, GRAIN_RESOURCES, STARTING_GOLD, STARTING_GRAIN_PER_TYPE, STARTING_POPULATION } from '@sam-simul/shared';
+import { ACTION_POINTS_PER_TURN, GRAIN_RESOURCES, MAP_SIZE_TRAVEL_DAY_MULTIPLIER, STARTING_CITY_NODE_IDS, STARTING_GOLD, STARTING_GRAIN_PER_TYPE, STARTING_POPULATION } from '@sam-simul/shared';
 import { resolveTurn } from './GameEngine.js';
 import type { AppServer } from '../../sockets/types.js';
 
@@ -13,6 +13,7 @@ interface GameSession {
   state: GameState;
   orders: Map<PlayerId, PlayerOrder>;
   turnTimeLimitSeconds: number;
+  mapSizeMultiplier: number;
   timer: NodeJS.Timeout;
 }
 
@@ -26,10 +27,11 @@ export class GameSessionManager {
   constructor(private io: AppServer) {}
 
   startGame(room: Room): void {
-    const cities: GameCity[] = room.players.map((player) => ({
+    const cities: GameCity[] = room.players.map((player, index) => ({
       cityId: `${player.playerId}-city1`,
       ownerId: player.playerId,
       name: `${player.displayName}의 도시`,
+      nodeId: STARTING_CITY_NODE_IDS[index % STARTING_CITY_NODE_IDS.length],
       population: STARTING_POPULATION,
       facilities: {
         agriculture: 0,
@@ -47,6 +49,7 @@ export class GameSessionManager {
       turnEndsAt: Date.now() + room.settings.turnTimeLimitSeconds * 1000,
       actionPointsPerTurn: ACTION_POINTS_PER_TURN,
       cities,
+      armies: [],
       submittedPlayerIds: [],
       lastTurnLog: [],
     };
@@ -55,6 +58,7 @@ export class GameSessionManager {
       state,
       orders: new Map(),
       turnTimeLimitSeconds: room.settings.turnTimeLimitSeconds,
+      mapSizeMultiplier: MAP_SIZE_TRAVEL_DAY_MULTIPLIER[room.settings.mapSize],
       timer: this.scheduleResolution(room.roomId, room.settings.turnTimeLimitSeconds),
     });
 
@@ -94,7 +98,7 @@ export class GameSessionManager {
     const session = this.sessions.get(roomId);
     if (!session) return;
 
-    const { nextState } = resolveTurn(session.state, session.orders, ACTION_POINTS_PER_TURN, `${roomId}:${session.state.turnNumber}`);
+    const { nextState } = resolveTurn(session.state, session.orders, ACTION_POINTS_PER_TURN, `${roomId}:${session.state.turnNumber}`, session.mapSizeMultiplier);
 
     session.state = { ...nextState, turnEndsAt: Date.now() + session.turnTimeLimitSeconds * 1000 };
     session.orders = new Map();

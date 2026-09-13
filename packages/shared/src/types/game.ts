@@ -1,5 +1,6 @@
 import type { PlayerId } from './session.js';
 import type { RoomId } from './room.js';
+import type { Army, MapNodeId, MarchOrder } from './map.js';
 
 export type CityId = string;
 
@@ -69,6 +70,7 @@ export interface GameCity {
   cityId: CityId;
   ownerId: PlayerId;
   name: string;
+  nodeId: MapNodeId;
   population: number;
   facilities: FacilityLevels;
   warehouse: Warehouse;
@@ -115,6 +117,7 @@ export interface PlayerOrder {
   marketExchange?: MarketExchangeOrder;
   recruit?: RecruitOrder;
   train?: TrainOrder;
+  march?: MarchOrder;
 }
 
 export interface TurnLogEntry {
@@ -136,6 +139,7 @@ export interface GameState {
   turnEndsAt: number; // epoch ms
   actionPointsPerTurn: number;
   cities: GameCity[];
+  armies: Army[];
   submittedPlayerIds: PlayerId[]; // who has submitted orders for the current turn
   lastTurnLog: TurnLogEntry[];
 }

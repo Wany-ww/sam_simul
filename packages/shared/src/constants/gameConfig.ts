@@ -129,3 +129,7 @@ export const MAX_TROOPS_PER_POPULATION_RATIO = 0.3;
 
 export const TRAIN_POINTS_PER_LEVEL = 2;
 export const MAX_TRAINING_LEVEL = 100;
+
+// Phase 4: map & movement.
+export const TURN_DURATION_DAYS = 5; // how many in-game march days one turn resolution advances
+export const MARCH_ORDER_POINT_COST = 1;

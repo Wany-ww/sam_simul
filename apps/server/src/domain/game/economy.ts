@@ -48,13 +48,16 @@ export function calculateAgricultureOutput(city: GameCity, populationMultiplier:
   return { ...splitEvenly(grainTotal, GRAIN_RESOURCES), ...splitEvenly(textileTotal, TEXTILE_RESOURCES) };
 }
 
-/** Animal husbandry: splits output evenly across the meat group, plus a leather yield, boosted by Blacksmith. */
-export function calculateHusbandryOutput(city: GameCity, populationMultiplier: number): Warehouse {
+/** Animal husbandry: splits output evenly across the meat group, plus a leather yield, boosted by Blacksmith. Horse output additionally reflects the city's region trait (e.g. Bingzhou/Xiliang). */
+export function calculateHusbandryOutput(city: GameCity, populationMultiplier: number, horseProductionMultiplier = 1): Warehouse {
   const level = city.facilities.animalHusbandry;
   const blacksmithBoost = 1 + city.facilities.industry.blacksmith * BLACKSMITH_PRODUCTION_BOOST_PER_LEVEL;
   const meatTotal = (HUSBANDRY_BASE_OUTPUT_PER_TYPE * MEAT_RESOURCES.length + HUSBANDRY_OUTPUT_PER_LEVEL * level) * blacksmithBoost * populationMultiplier;
 
-  return { ...splitEvenly(meatTotal, MEAT_RESOURCES), leather: meatTotal * LEATHER_YIELD_RATIO };
+  const meatOutput = splitEvenly(meatTotal, MEAT_RESOURCES);
+  meatOutput.horse = (meatOutput.horse ?? 0) * horseProductionMultiplier;
+
+  return { ...meatOutput, leather: meatTotal * LEATHER_YIELD_RATIO };
 }
 
 /** Commerce: Tax Office and Trading Post both produce gold; Public Works boosts Tax Office's output. */

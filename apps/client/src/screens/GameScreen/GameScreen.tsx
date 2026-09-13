@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useGameStore } from '../../state/gameStore';
 import { useRoomStore } from '../../state/roomStore';
+import { ArmiesPanel } from './ArmiesPanel';
 import { CityOverview } from './CityOverview';
 import { OrderForm } from './OrderForm';
 import { TurnLogPanel } from './TurnLogPanel';
@@ -36,6 +37,7 @@ export function GameScreen() {
   }
 
   const myCity = gameState.cities.find((c) => c.ownerId === playerId);
+  const myArmies = gameState.armies.filter((a) => a.ownerId === playerId);
   const myLastTurnLog = gameState.lastTurnLog.find((l) => l.playerId === playerId);
   const submittedCount = gameState.submittedPlayerIds.length;
   const totalCount = gameState.cities.length;
@@ -53,8 +55,11 @@ export function GameScreen() {
 
       {myCity && (
         <div className="game-body">
-          <CityOverview city={myCity} />
-          <OrderForm roomId={gameState.roomId} actionPointsPerTurn={gameState.actionPointsPerTurn} disabled={hasSubmittedThisTurn} onSubmit={markSubmitted} />
+          <div>
+            <CityOverview city={myCity} />
+            <ArmiesPanel armies={myArmies} />
+          </div>
+          <OrderForm roomId={gameState.roomId} city={myCity} actionPointsPerTurn={gameState.actionPointsPerTurn} disabled={hasSubmittedThisTurn} onSubmit={markSubmitted} />
         </div>
       )}
     </div>

@@ -1,9 +1,10 @@
-import type { GameCity, GameState, PlayerId, PlayerOrder, ResourceType, TurnLogEntry, Warehouse } from '@sam-simul/shared';
-import { RESOURCE_LABEL, UNIT_TYPE_LABEL, createSeededRng } from '@sam-simul/shared';
+import type { Army, GameCity, GameState, PlayerId, PlayerOrder, ResourceType, TurnLogEntry, Warehouse } from '@sam-simul/shared';
+import { REGIONS, RESOURCE_LABEL, UNIT_TYPE_LABEL, createSeededRng, getMapNode } from '@sam-simul/shared';
 import { applyDecay, applyPopulationConsumption, applyProduction, calculateAgricultureOutput, calculateCommerceOutput, calculateHusbandryOutput, calculateIndustryOutput, populationProductionMultiplier } from './economy.js';
 import { applyMarketExchange } from './market.js';
 import { rollPopulationGrowth } from './population.js';
 import { applyRecruitment, applyTraining } from './troops.js';
+import { advanceArmy, createArmyFromMarchOrder } from './movement.js';
 import { clampOrderToBudget } from './orderBudget.js';
 
 export interface ResolveTurnResult {
@@ -31,9 +32,16 @@ function mergeWarehouses(...parts: Warehouse[]): Warehouse {
 // what makes turns replayable and unit-testable without any network layer.
 // Orchestrates the smaller pure helpers in economy/market/population/troops;
 // this function's job is just sequencing them per city and building the log.
-export function resolveTurn(state: GameState, orders: Map<PlayerId, PlayerOrder>, actionPointsPerTurn: number, rngSeed: string): ResolveTurnResult {
+export function resolveTurn(
+  state: GameState,
+  orders: Map<PlayerId, PlayerOrder>,
+  actionPointsPerTurn: number,
+  rngSeed: string,
+  mapSizeMultiplier: number,
+): ResolveTurnResult {
   const rng = createSeededRng(rngSeed);
   const log: TurnLogEntry[] = [];
+  const newArmies: Army[] = [];
 
   const nextCities: GameCity[] = state.cities.map((city) => {
     const rawOrder = orders.get(city.ownerId) ?? EMPTY_ORDER;
@@ -58,10 +66,11 @@ export function resolveTurn(state: GameState, orders: Map<PlayerId, PlayerOrder>
 
     const cityWithNewFacilities: GameCity = { ...city, facilities: nextFacilities };
     const populationMultiplier = populationProductionMultiplier(city.population);
+    const horseProductionMultiplier = REGIONS[getMapNode(city.nodeId)?.region ?? 'siLi']?.horseProductionMultiplier ?? 1;
 
     const produced = mergeWarehouses(
       calculateAgricultureOutput(cityWithNewFacilities, populationMultiplier),
-      calculateHusbandryOutput(cityWithNewFacilities, populationMultiplier),
+      calculateHusbandryOutput(cityWithNewFacilities, populationMultiplier, horseProductionMultiplier),
       calculateCommerceOutput(cityWithNewFacilities),
       calculateIndustryOutput(cityWithNewFacilities),
     );
@@ -106,6 +115,16 @@ export function resolveTurn(state: GameState, orders: Map<PlayerId, PlayerOrder>
       }
     }
 
+    if (order.march) {
+      const result = createArmyFromMarchOrder({ ...cityWithNewFacilities, troops }, order.march, mapSizeMultiplier);
+      if (result.army) {
+        troops = result.troops;
+        newArmies.push(result.army);
+        const destinationName = getMapNode(order.march.destinationNodeId)?.name ?? order.march.destinationNodeId;
+        notes.push(`${UNIT_TYPE_LABEL[order.march.unitType]} ${result.army.troops[0].count}명이 ${destinationName}(으)로 출발했습니다. (예상 소요: ${result.army.daysRemaining}일)`);
+      }
+    }
+
     warehouse = applyDecay(warehouse);
 
     const populationDelta = rollPopulationGrowth(rng, nextFacilities);
@@ -133,10 +152,24 @@ export function resolveTurn(state: GameState, orders: Map<PlayerId, PlayerOrder>
     };
   });
 
+  const nextArmies: Army[] = [];
+  for (const army of [...state.armies, ...newArmies]) {
+    const wasTraveling = army.destinationNodeId !== null;
+    const advanced = advanceArmy(army);
+    nextArmies.push(advanced);
+
+    if (wasTraveling && advanced.destinationNodeId === null) {
+      const entry = log.find((l) => l.playerId === army.ownerId);
+      const arrivalName = getMapNode(advanced.currentNodeId)?.name ?? advanced.currentNodeId;
+      entry?.notes.push(`${UNIT_TYPE_LABEL[advanced.troops[0].unitType]} 부대가 ${arrivalName}에 도착했습니다.`);
+    }
+  }
+
   const nextState: GameState = {
     ...state,
     turnNumber: state.turnNumber + 1,
     cities: nextCities,
+    armies: nextArmies,
     submittedPlayerIds: [],
     lastTurnLog: log,
   };

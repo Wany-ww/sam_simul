@@ -8,6 +8,7 @@ function makeCity(overrides: Partial<GameCity> = {}): GameCity {
     cityId: 'c1',
     ownerId: 'p1',
     name: '도시',
+    nodeId: 'luoyang',
     population: 100,
     facilities: {
       agriculture: 0,

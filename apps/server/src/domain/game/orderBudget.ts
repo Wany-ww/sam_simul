@@ -1,12 +1,12 @@
 import type { PlayerOrder } from '@sam-simul/shared';
-import { MARKET_EXCHANGE_POINT_COST, RECRUIT_POINT_COST_PER_UNIT } from '@sam-simul/shared';
+import { MARCH_ORDER_POINT_COST, MARKET_EXCHANGE_POINT_COST, RECRUIT_POINT_COST_PER_UNIT } from '@sam-simul/shared';
 
 /**
  * Clamps a submitted order to the action-point budget by walking a fixed
- * priority order (facility investments, then recruit, then train, then market
- * exchange) and taking whatever fits from the remaining budget at each step.
- * This guarantees every resolved order is affordable without ever rejecting
- * a whole submission outright.
+ * priority order (facility investments, then recruit, then train, then
+ * march, then market exchange) and taking whatever fits from the remaining
+ * budget at each step. This guarantees every resolved order is affordable
+ * without ever rejecting a whole submission outright.
  */
 export function clampOrderToBudget(order: PlayerOrder, budget: number): PlayerOrder {
   let remaining = Math.max(0, budget);
@@ -46,6 +46,12 @@ export function clampOrderToBudget(order: PlayerOrder, budget: number): PlayerOr
     }
   }
 
+  let march: PlayerOrder['march'];
+  if (order.march && order.march.count > 0 && remaining >= MARCH_ORDER_POINT_COST) {
+    march = order.march;
+    remaining -= MARCH_ORDER_POINT_COST;
+  }
+
   let marketExchange: PlayerOrder['marketExchange'];
   if (order.marketExchange && order.marketExchange.amount > 0 && remaining >= MARKET_EXCHANGE_POINT_COST) {
     marketExchange = order.marketExchange;
@@ -62,5 +68,6 @@ export function clampOrderToBudget(order: PlayerOrder, budget: number): PlayerOr
     marketExchange,
     recruit,
     train,
+    march,
   };
 }

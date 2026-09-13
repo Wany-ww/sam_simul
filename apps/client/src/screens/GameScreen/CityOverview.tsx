@@ -1,13 +1,18 @@
 import type { GameCity, ResourceType } from '@sam-simul/shared';
-import { RESOURCE_LABEL, UNIT_TYPE_LABEL } from '@sam-simul/shared';
+import { RESOURCE_LABEL, REGIONS, UNIT_TYPE_LABEL, getMapNode } from '@sam-simul/shared';
 
 export function CityOverview({ city }: { city: GameCity }) {
   const stockedResources = (Object.entries(city.warehouse) as [ResourceType, number][]).filter(([, amount]) => amount > 0.01);
+  const node = getMapNode(city.nodeId);
+  const region = node ? REGIONS[node.region] : undefined;
 
   return (
     <div className="card">
       <h2>{city.name}</h2>
       <ul className="settings-readout">
+        <li>
+          위치: {node?.name ?? city.nodeId} ({region?.name ?? '?'})
+        </li>
         <li>인구: {Math.round(city.population)}</li>
         <li>농업 수준: {round(city.facilities.agriculture)}</li>
         <li>목축업 수준: {round(city.facilities.animalHusbandry)}</li>
