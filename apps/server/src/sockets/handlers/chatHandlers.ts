@@ -23,7 +23,7 @@ export function registerChatHandlers(io: AppServer, socket: AppSocket, roomManag
         socket.emit('room:error', { code: err.code, message: err.message });
         return;
       }
-      socket.emit('room:error', { code: 'NOT_IN_ROOM', message: 'failed to send message' });
+      socket.emit('room:error', { code: 'NOT_IN_ROOM', message: '메시지 전송에 실패했습니다.' });
     }
   });
 }

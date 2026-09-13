@@ -9,6 +9,8 @@
   --accent-hover: #d4963f;
   --error: #d05050;
   --danger-bg: #3a2020;
+  --map-neutral: #5a5040;
+  --map-my-city-ring: #ffe27a;
 }
 
 * {
@@ -209,6 +211,97 @@ button:disabled {
 
 .status-dot.status-disconnected {
   background: #888;
+}
+
+.battle-replay {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.battle-bar-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  margin-bottom: 8px;
+}
+
+.battle-bar {
+  height: 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+}
+
+.battle-bar-fill {
+  height: 100%;
+  transition: width 0.3s ease;
+}
+
+.battle-bar-mine {
+  background: var(--accent);
+}
+
+.battle-bar-enemy {
+  background: var(--error);
+}
+
+.battle-replay-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.battle-replay-controls input[type='range'] {
+  flex: 1;
+}
+
+.map-svg {
+  width: 100%;
+  height: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.map-edge {
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+.map-node-label {
+  fill: var(--text);
+  font-size: 11px;
+}
+
+.map-army-marker {
+  opacity: 0.9;
+}
+
+.map-legend {
+  list-style: none;
+  padding: 0;
+  margin: 10px 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 0.85rem;
+}
+
+.map-legend li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.map-legend-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  display: inline-block;
 }
 
 .general-list li {

@@ -5,6 +5,7 @@ import { useRoomStore } from '../../state/roomStore';
 import { ArmiesPanel } from './ArmiesPanel';
 import { CityOverview } from './CityOverview';
 import { GeneralsPanel } from './GeneralsPanel';
+import { MapView } from './MapView';
 import { OrderForm } from './OrderForm';
 import { TurnLogPanel } from './TurnLogPanel';
 
@@ -12,6 +13,7 @@ export function GameScreen() {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const playerId = useRoomStore((s) => s.playerId);
+  const roomPlayers = useRoomStore((s) => s.currentRoom?.players ?? []);
   const gameState = useGameStore((s) => s.gameState);
   const hasSubmittedThisTurn = useGameStore((s) => s.hasSubmittedThisTurn);
   const markSubmitted = useGameStore((s) => s.markSubmitted);
@@ -53,6 +55,8 @@ export function GameScreen() {
       </header>
 
       <TurnLogPanel entry={myLastTurnLog} />
+
+      <MapView cities={gameState.cities} armies={gameState.armies} players={roomPlayers} myPlayerId={playerId} />
 
       {myCity && (
         <div className="game-body">

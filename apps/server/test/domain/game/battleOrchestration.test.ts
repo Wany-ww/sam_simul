@@ -74,6 +74,20 @@ describe('resolveBattlesForTurn', () => {
     expect(defenderAcc.battles[0].opponentPlayerId).toBe('p2');
   });
 
+  it('tags each side with its role and shares the same day-by-day log for replay', () => {
+    const city = makeCity({ ownerId: 'p1' });
+    const attacker = makeArmy({ ownerId: 'p2' });
+    const result = resolveBattlesForTurn([city], [attacker], 1, createSeededRng('siege'));
+
+    const attackerEntry = result.notesByPlayer.get('p2')!.battles[0];
+    const defenderEntry = result.notesByPlayer.get('p1')!.battles[0];
+
+    expect(attackerEntry.role).toBe('attacker');
+    expect(defenderEntry.role).toBe('defender');
+    expect(attackerEntry.dayLog).toEqual(defenderEntry.dayLog);
+    expect(attackerEntry.dayLog.length).toBeGreaterThan(0);
+  });
+
   it('captures an undefended city without a fight (bloodless capture)', () => {
     const city = makeCity({ ownerId: 'p1', troops: [] });
     const attacker = makeArmy({ ownerId: 'p2', troops: [{ unitType: 'spearman', count: 50, trainingLevel: 0 }] });

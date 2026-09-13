@@ -150,6 +150,17 @@ describe('resolveBattle', () => {
     expect(result.outcome).toBe('ongoing');
     expect(result.daysFought).toBe(1);
   });
+
+  it('records one day-by-day snapshot per day fought, ending with the same totals as the final result', () => {
+    const result = resolveBattle(makeSide(), makeSide({ troops: [{ unitType: 'spearman', count: 50, trainingLevel: 0 }] }), 5, createSeededRng('log-check'));
+
+    expect(result.dayLog).toHaveLength(result.daysFought);
+    expect(result.dayLog.map((d) => d.day)).toEqual(Array.from({ length: result.daysFought }, (_, i) => i + 1));
+    const lastDay = result.dayLog[result.dayLog.length - 1];
+    expect(lastDay.attackerTroops).toBe(totalTroopCount(result.attacker.troops));
+    expect(lastDay.defenderTroops).toBe(totalTroopCount(result.defender.troops));
+    expect(lastDay.wallDurability).toBeUndefined(); // field battles don't track a wall
+  });
 });
 
 describe('resolveSiege', () => {
@@ -167,6 +178,15 @@ describe('resolveSiege', () => {
     const defender = makeSide();
     const result = resolveSiege(attacker, defender, 5, 20, createSeededRng('overkill'));
     expect(result.wallDurability).toBe(0);
+  });
+
+  it('includes wallDurability in each day snapshot, unlike a field battle', () => {
+    const attacker = makeSide({ troops: [{ unitType: 'engineer', count: 50, trainingLevel: 0 }] });
+    const defender = makeSide();
+    const result = resolveSiege(attacker, defender, 500, 5, createSeededRng('siege-log'));
+
+    expect(result.dayLog.length).toBeGreaterThan(0);
+    for (const day of result.dayLog) expect(day.wallDurability).toBeGreaterThanOrEqual(0);
   });
 
   it('applies an extra daily morale penalty to the besieged defender', () => {

@@ -1,4 +1,5 @@
 import type { TurnLogEntry } from '@sam-simul/shared';
+import { BattleReplay } from './BattleReplay';
 
 export function TurnLogPanel({ entry }: { entry: TurnLogEntry | undefined }) {
   if (!entry) return null;
@@ -15,6 +16,10 @@ export function TurnLogPanel({ entry }: { entry: TurnLogEntry | undefined }) {
           ))}
         </ul>
       )}
+
+      {entry.battles.map((battle, i) => (
+        <BattleReplay key={i} entry={battle} />
+      ))}
     </div>
   );
 }

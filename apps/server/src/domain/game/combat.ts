@@ -1,4 +1,4 @@
-import type { ArmyStance, Rng, TroopStack } from '@sam-simul/shared';
+import type { ArmyStance, DaySnapshot, Rng, TroopStack } from '@sam-simul/shared';
 import {
   DAILY_CASUALTY_COEFFICIENT,
   FORTIFICATION_DAMAGE_TAKEN_MULTIPLIER,
@@ -131,6 +131,7 @@ export interface BattleResult {
   totalAttackerCasualties: number;
   totalDefenderCasualties: number;
   outcome: BattleOutcome;
+  dayLog: DaySnapshot[];
 }
 
 function isRouted(side: CombatSide): boolean {
@@ -169,6 +170,7 @@ function runDays(
   let totalDefenderCasualties = 0;
   let daysFought = 0;
   let outcome: BattleOutcome = 'ongoing';
+  const dayLog: DaySnapshot[] = [];
 
   for (let day = 0; day < maxDays; day++) {
     const dayResult = resolveCombatDay(currentAttacker, currentDefender, isSiege, rng);
@@ -178,6 +180,15 @@ function runDays(
     totalDefenderCasualties += dayResult.defenderCasualties;
     wallDurability -= dayResult.wallDamage;
     daysFought++;
+
+    dayLog.push({
+      day: daysFought,
+      attackerTroops: totalTroopCount(currentAttacker.troops),
+      defenderTroops: totalTroopCount(currentDefender.troops),
+      attackerMorale: currentAttacker.morale,
+      defenderMorale: currentDefender.morale,
+      ...(isSiege ? { wallDurability: Math.max(0, wallDurability) } : {}),
+    });
 
     const attackerRouted = isRouted(currentAttacker);
     const defenderRouted = isRouted(currentDefender) || (isSiege && wallDurability <= 0);
@@ -197,7 +208,7 @@ function runDays(
   }
 
   return {
-    result: { attacker: currentAttacker, defender: currentDefender, daysFought, totalAttackerCasualties, totalDefenderCasualties, outcome },
+    result: { attacker: currentAttacker, defender: currentDefender, daysFought, totalAttackerCasualties, totalDefenderCasualties, outcome, dayLog },
     wallDurability,
   };
 }

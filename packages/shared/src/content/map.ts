@@ -14,22 +14,24 @@ export const REGIONS: Record<RegionId, Region> = {
   jiangdong: { regionId: 'jiangdong', name: '강동', horseProductionMultiplier: 0.8 },
 };
 
+// x/y are a schematic layout for the client map view (roughly matching real
+// relative geography so edge lengths look sensible) -- not to scale.
 export const MAP_NODES: MapNode[] = [
-  { nodeId: 'luoyang', name: '낙양', type: 'city', region: 'siLi', isStartingCity: true },
-  { nodeId: 'changan', name: '장안', type: 'city', region: 'xiliang', isStartingCity: true },
-  { nodeId: 'ye', name: '업', type: 'city', region: 'jizhou', isStartingCity: true },
-  { nodeId: 'jinyang', name: '진양', type: 'city', region: 'bingzhou', isStartingCity: true },
-  { nodeId: 'puyang', name: '견성', type: 'city', region: 'yanzhou', isStartingCity: true },
-  { nodeId: 'runan', name: '여남', type: 'city', region: 'yuzhou', isStartingCity: true },
-  { nodeId: 'xiangyang', name: '양양', type: 'city', region: 'jingzhou', isStartingCity: true },
-  { nodeId: 'chengdu', name: '성도', type: 'city', region: 'yizhou', isStartingCity: true },
-  { nodeId: 'jianye', name: '건업', type: 'city', region: 'jiangdong', isStartingCity: true },
+  { nodeId: 'luoyang', name: '낙양', type: 'city', region: 'siLi', isStartingCity: true, x: 320, y: 260 },
+  { nodeId: 'changan', name: '장안', type: 'city', region: 'xiliang', isStartingCity: true, x: 120, y: 280 },
+  { nodeId: 'ye', name: '업', type: 'city', region: 'jizhou', isStartingCity: true, x: 420, y: 100 },
+  { nodeId: 'jinyang', name: '진양', type: 'city', region: 'bingzhou', isStartingCity: true, x: 420, y: 20 },
+  { nodeId: 'puyang', name: '견성', type: 'city', region: 'yanzhou', isStartingCity: true, x: 520, y: 220 },
+  { nodeId: 'runan', name: '여남', type: 'city', region: 'yuzhou', isStartingCity: true, x: 580, y: 320 },
+  { nodeId: 'xiangyang', name: '양양', type: 'city', region: 'jingzhou', isStartingCity: true, x: 380, y: 460 },
+  { nodeId: 'chengdu', name: '성도', type: 'city', region: 'yizhou', isStartingCity: true, x: 120, y: 520 },
+  { nodeId: 'jianye', name: '건업', type: 'city', region: 'jiangdong', isStartingCity: true, x: 580, y: 540 },
 
-  { nodeId: 'hulaoGuan', name: '호로관', type: 'battlefield', region: 'siLi', isStartingCity: false },
-  { nodeId: 'guanzhong', name: '관중', type: 'battlefield', region: 'xiliang', isStartingCity: false },
-  { nodeId: 'wancheng', name: '완성', type: 'battlefield', region: 'yuzhou', isStartingCity: false },
-  { nodeId: 'yangtzeCrossing', name: '장강도하', type: 'battlefield', region: 'jingzhou', isStartingCity: false },
-  { nodeId: 'jianGe', name: '검각', type: 'battlefield', region: 'yizhou', isStartingCity: false },
+  { nodeId: 'hulaoGuan', name: '호로관', type: 'battlefield', region: 'siLi', isStartingCity: false, x: 420, y: 200 },
+  { nodeId: 'guanzhong', name: '관중', type: 'battlefield', region: 'xiliang', isStartingCity: false, x: 220, y: 260 },
+  { nodeId: 'wancheng', name: '완성', type: 'battlefield', region: 'yuzhou', isStartingCity: false, x: 380, y: 380 },
+  { nodeId: 'yangtzeCrossing', name: '장강도하', type: 'battlefield', region: 'jingzhou', isStartingCity: false, x: 470, y: 510 },
+  { nodeId: 'jianGe', name: '검각', type: 'battlefield', region: 'yizhou', isStartingCity: false, x: 170, y: 420 },
 ];
 
 export const MAP_EDGES: MapEdge[] = [

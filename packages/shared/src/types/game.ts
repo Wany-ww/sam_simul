@@ -132,15 +132,30 @@ export interface PlayerOrder {
 
 export type BattleType = 'field' | 'siege';
 
+// A per-day snapshot after that day's casualties/morale are applied, kept so
+// the client can animate a battle as a day-by-day playback (per the roadmap's
+// "log-based client replay, not server streaming" resolution) instead of
+// only showing the final tally.
+export interface DaySnapshot {
+  day: number;
+  attackerTroops: number;
+  defenderTroops: number;
+  attackerMorale: number;
+  defenderMorale: number;
+  wallDurability?: number; // present only for sieges
+}
+
 export interface BattleLogEntry {
   nodeId: MapNodeId;
   battleType: BattleType;
   opponentPlayerId: PlayerId;
+  role: 'attacker' | 'defender'; // which side of dayLog is "mine" -- dayLog itself is the same shared timeline for both participants' entries
   daysFought: number;
   ownCasualties: number;
   opponentCasualties: number;
   outcome: 'ongoing' | 'won' | 'lost';
   wallDurabilityRemaining?: number; // present only for the siege attacker/defender
+  dayLog: DaySnapshot[];
 }
 
 export interface TurnLogEntry {

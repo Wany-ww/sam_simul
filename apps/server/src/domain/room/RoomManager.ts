@@ -28,7 +28,7 @@ export class RoomManager {
 
     const existingRoomId = this.playerToRoom.get(params.hostPlayerId);
     if (existingRoomId && this.repo.get(existingRoomId)) {
-      throw new RoomError('NOT_IN_ROOM', 'player is already in a room; leave it before creating a new one');
+      throw new RoomError('NOT_IN_ROOM', '이미 다른 방에 참여 중입니다. 새 방을 만들려면 먼저 기존 방을 나가세요.');
     }
 
     const now = Date.now();
@@ -69,11 +69,11 @@ export class RoomManager {
     }
 
     if (room.status !== 'lobby') {
-      throw new RoomError('ROOM_ALREADY_STARTED', 'cannot join a room that has already started');
+      throw new RoomError('ROOM_ALREADY_STARTED', '이미 시작된 방에는 입장할 수 없습니다.');
     }
 
     if (room.players.length >= room.settings.maxPlayers) {
-      throw new RoomError('ROOM_FULL', 'room is full');
+      throw new RoomError('ROOM_FULL', '방 정원이 가득 찼습니다.');
     }
 
     room.players.push({
@@ -92,7 +92,7 @@ export class RoomManager {
     const room = this.requireRoom(params.roomId);
     const player = room.players.find((p) => p.playerId === params.playerId);
     if (!player) {
-      throw new RoomError('NOT_IN_ROOM', 'player is not a member of this room');
+      throw new RoomError('NOT_IN_ROOM', '이 방의 참여자가 아닙니다.');
     }
 
     player.status = 'connected';
@@ -105,7 +105,7 @@ export class RoomManager {
     const room = this.requireRoom(params.roomId);
     const index = room.players.findIndex((p) => p.playerId === params.playerId);
     if (index === -1) {
-      throw new RoomError('NOT_IN_ROOM', 'player is not a member of this room');
+      throw new RoomError('NOT_IN_ROOM', '이 방의 참여자가 아닙니다.');
     }
 
     const wasHost = room.players[index].isHost;
@@ -148,7 +148,7 @@ export class RoomManager {
     this.requireHost(room, params.playerId);
 
     if (room.status !== 'lobby') {
-      throw new RoomError('ROOM_ALREADY_STARTED', 'cannot change settings after the game has started');
+      throw new RoomError('ROOM_ALREADY_STARTED', '게임이 시작된 후에는 설정을 변경할 수 없습니다.');
     }
 
     const merged: RoomSettings = { ...room.settings, ...params.settings };
@@ -162,7 +162,7 @@ export class RoomManager {
     this.requireHost(room, params.playerId);
 
     if (room.status !== 'lobby') {
-      throw new RoomError('ROOM_ALREADY_STARTED', 'room has already started');
+      throw new RoomError('ROOM_ALREADY_STARTED', '이미 시작된 방입니다.');
     }
 
     const connectedCount = room.players.filter((p) => p.status === 'connected').length;
@@ -178,12 +178,12 @@ export class RoomManager {
     const room = this.requireRoom(params.roomId);
     const player = room.players.find((p) => p.playerId === params.playerId);
     if (!player) {
-      throw new RoomError('NOT_IN_ROOM', 'player is not a member of this room');
+      throw new RoomError('NOT_IN_ROOM', '이 방의 참여자가 아닙니다.');
     }
 
     const text = params.text.trim().slice(0, 500);
     if (!text) {
-      throw new RoomError('INVALID_NAME', 'message cannot be empty');
+      throw new RoomError('INVALID_NAME', '메시지 내용을 입력해주세요.');
     }
 
     const message: ChatMessage = {
@@ -261,14 +261,14 @@ export class RoomManager {
 
   private requireRoom(roomId: RoomId): Room {
     const room = this.repo.get(roomId);
-    if (!room) throw new RoomError('ROOM_NOT_FOUND', 'room not found');
+    if (!room) throw new RoomError('ROOM_NOT_FOUND', '방을 찾을 수 없습니다.');
     return room;
   }
 
   private requireHost(room: Room, playerId: PlayerId): RoomPlayer {
     const player = room.players.find((p) => p.playerId === playerId);
     if (!player || !player.isHost) {
-      throw new RoomError('NOT_HOST', 'only the host can perform this action');
+      throw new RoomError('NOT_HOST', '호스트만 이 작업을 수행할 수 있습니다.');
     }
     return player;
   }

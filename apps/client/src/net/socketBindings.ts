@@ -12,6 +12,7 @@ export function bindSocketEvents(navigate: NavigateFunction): void {
   socket.off('room:state');
   socket.on('room:state', (room) => {
     useRoomStore.getState().setCurrentRoom(room);
+    useRoomStore.getState().setError(null);
     setLastRoomId(room.roomId);
   });
 

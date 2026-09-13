@@ -16,6 +16,8 @@ export interface MapNode {
   type: MapNodeType;
   region: RegionId;
   isStartingCity: boolean;
+  x: number; // schematic layout position for the client map view, not to geographic scale
+  y: number;
 }
 
 export interface MapEdge {

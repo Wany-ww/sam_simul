@@ -1,4 +1,4 @@
-import type { Army, BattleLogEntry, BattleType, GameCity, MapNodeId, PlayerId, Rng, TroopStack, UnitType } from '@sam-simul/shared';
+import type { Army, BattleLogEntry, BattleType, DaySnapshot, GameCity, MapNodeId, PlayerId, Rng, TroopStack, UnitType } from '@sam-simul/shared';
 import { MAX_WALL_DURABILITY, getMapNode } from '@sam-simul/shared';
 import type { CombatSide } from './combat.js';
 import { resolveBattle, resolveSiege, totalTroopCount } from './combat.js';
@@ -153,8 +153,14 @@ function resolveSiegeAtNode(
 
   const attackerOutcome = result.outcome === 'attackerVictory' ? 'won' : result.outcome === 'defenderVictory' ? 'lost' : 'ongoing';
   const defenderOutcome = result.outcome === 'defenderVictory' ? 'won' : result.outcome === 'attackerVictory' ? 'lost' : 'ongoing';
-  h.logBattle(attackerOwnerId, battleEntry(nodeId, 'siege', defenderOwnerId, result.daysFought, result.totalAttackerCasualties, result.totalDefenderCasualties, attackerOutcome, result.wallDurability));
-  h.logBattle(defenderOwnerId, battleEntry(nodeId, 'siege', attackerOwnerId, result.daysFought, result.totalDefenderCasualties, result.totalAttackerCasualties, defenderOutcome, result.wallDurability));
+  h.logBattle(
+    attackerOwnerId,
+    battleEntry(nodeId, 'siege', defenderOwnerId, 'attacker', result.daysFought, result.totalAttackerCasualties, result.totalDefenderCasualties, attackerOutcome, result.dayLog, result.wallDurability),
+  );
+  h.logBattle(
+    defenderOwnerId,
+    battleEntry(nodeId, 'siege', attackerOwnerId, 'defender', result.daysFought, result.totalDefenderCasualties, result.totalAttackerCasualties, defenderOutcome, result.dayLog, result.wallDurability),
+  );
 
   if (result.outcome === 'attackerVictory') {
     homeCity.ownerId = attackerOwnerId;
@@ -198,8 +204,8 @@ function resolveFieldBattleAtNode(
 
   const aOutcome = result.outcome === 'attackerVictory' ? 'won' : result.outcome === 'defenderVictory' ? 'lost' : 'ongoing';
   const bOutcome = result.outcome === 'defenderVictory' ? 'won' : result.outcome === 'attackerVictory' ? 'lost' : 'ongoing';
-  h.logBattle(ownerA, battleEntry(nodeId, 'field', ownerB, result.daysFought, result.totalAttackerCasualties, result.totalDefenderCasualties, aOutcome));
-  h.logBattle(ownerB, battleEntry(nodeId, 'field', ownerA, result.daysFought, result.totalDefenderCasualties, result.totalAttackerCasualties, bOutcome));
+  h.logBattle(ownerA, battleEntry(nodeId, 'field', ownerB, 'attacker', result.daysFought, result.totalAttackerCasualties, result.totalDefenderCasualties, aOutcome, result.dayLog));
+  h.logBattle(ownerB, battleEntry(nodeId, 'field', ownerA, 'defender', result.daysFought, result.totalDefenderCasualties, result.totalAttackerCasualties, bOutcome, result.dayLog));
 
   if (result.outcome === 'attackerVictory') {
     h.consolidate(aIndexes, result.attacker.troops, result.attacker.morale);
@@ -245,11 +251,13 @@ function battleEntry(
   nodeId: MapNodeId,
   battleType: BattleType,
   opponentPlayerId: PlayerId,
+  role: 'attacker' | 'defender',
   daysFought: number,
   ownCasualties: number,
   opponentCasualties: number,
   outcome: 'ongoing' | 'won' | 'lost',
+  dayLog: DaySnapshot[],
   wallDurabilityRemaining?: number,
 ): BattleLogEntry {
-  return { nodeId, battleType, opponentPlayerId, daysFought, ownCasualties, opponentCasualties, outcome, wallDurabilityRemaining };
+  return { nodeId, battleType, opponentPlayerId, role, daysFought, ownCasualties, opponentCasualties, outcome, dayLog, wallDurabilityRemaining };
 }
