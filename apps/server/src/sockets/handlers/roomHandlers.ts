@@ -63,6 +63,11 @@ export function registerRoomHandlers(io: AppServer, socket: AppSocket, roomManag
       socket.join(room.roomId);
       io.to(room.roomId).emit('room:state', room);
       io.to(room.roomId).emit('room:playerStatusChanged', { playerId: socket.data.playerId, status: 'connected' });
+
+      if (room.status === 'in_progress') {
+        const gameState = gameSessionManager.getState(room.roomId);
+        if (gameState) socket.emit('game:state', gameState);
+      }
     } catch (err) {
       handleError(socket, err);
     }

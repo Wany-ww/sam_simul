@@ -110,6 +110,10 @@ export class GameSessionManager {
     this.broadcast(roomId);
   }
 
+  getState(roomId: RoomId): GameState | undefined {
+    return this.sessions.get(roomId)?.state;
+  }
+
   endGame(roomId: RoomId): void {
     const session = this.sessions.get(roomId);
     if (!session) return;

@@ -20,6 +20,10 @@ export function RoomScreen() {
   }, [playerId, navigate]);
 
   useEffect(() => {
+    if (currentRoom?.status === 'in_progress') navigate(`/game/${currentRoom.roomId}`);
+  }, [currentRoom?.status, currentRoom?.roomId, navigate]);
+
+  useEffect(() => {
     if (lastError?.code === 'ROOM_NOT_FOUND' || lastError?.code === 'NOT_IN_ROOM') {
       setLastRoomId(null);
       navigate('/lobby');

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import type { RoomPlayer } from '@sam-simul/shared';
 import { useGameStore } from '../../state/gameStore';
 import { useRoomStore } from '../../state/roomStore';
 import { ArmiesPanel } from './ArmiesPanel';
@@ -9,11 +10,18 @@ import { MapView } from './MapView';
 import { OrderForm } from './OrderForm';
 import { TurnLogPanel } from './TurnLogPanel';
 
+const NO_PLAYERS: RoomPlayer[] = [];
+
 export function GameScreen() {
   const { roomId } = useParams<{ roomId: string }>();
   const navigate = useNavigate();
   const playerId = useRoomStore((s) => s.playerId);
-  const roomPlayers = useRoomStore((s) => s.currentRoom?.players ?? []);
+  // A stable fallback reference matters here: returning a fresh `[]` on every
+  // call (e.g. `?? []`) makes Zustand's snapshot look like it changes on
+  // every render, which starves out into "Maximum update depth exceeded" --
+  // hit in practice by reloading the page while sitting on this route with
+  // no currentRoom loaded yet (fresh session, or mid-game reconnect).
+  const roomPlayers = useRoomStore((s) => s.currentRoom?.players ?? NO_PLAYERS);
   const gameState = useGameStore((s) => s.gameState);
   const hasSubmittedThisTurn = useGameStore((s) => s.hasSubmittedThisTurn);
   const markSubmitted = useGameStore((s) => s.markSubmitted);
