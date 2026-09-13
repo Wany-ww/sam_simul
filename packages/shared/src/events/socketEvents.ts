@@ -28,6 +28,8 @@ export interface ClientToServerEvents {
   'room:leave': (payload: { roomId: RoomId }) => void;
   'room:updateSettings': (payload: { roomId: RoomId; settings: Partial<RoomSettings> }) => void;
   'room:chat': (payload: { roomId: RoomId; text: string }) => void;
+  'room:addAi': (payload: { roomId: RoomId }) => void;
+  'room:removeAi': (payload: { roomId: RoomId; playerId: PlayerId }) => void;
   'room:start': (payload: { roomId: RoomId }) => void;
   'game:submitOrder': (payload: { roomId: RoomId; order: PlayerOrder }) => void;
 }

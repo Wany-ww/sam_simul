@@ -15,6 +15,7 @@ export interface RoomPlayer {
   status: ConnectionStatus;
   joinedAt: number;
   lastDisconnectedAt?: number;
+  isAI?: boolean; // host-added bot; always 'connected', never disconnects
 }
 
 export interface RoomSettings {

@@ -6,3 +6,4 @@ export * from './content/labels.js';
 export * from './content/map.js';
 export * from './content/generals.js';
 export * from './content/events.js';
+export * from './content/aiNames.js';

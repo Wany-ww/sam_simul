@@ -137,6 +137,81 @@ describe('RoomManager', () => {
     expect(rm.getRoom(room.roomId)?.chatLog).toHaveLength(1);
   });
 
+  it('lets the host add an AI player that counts as connected toward the start minimum', () => {
+    const rm = makeManager();
+    const room = rm.createRoom({ name: '방', settings: DEFAULT_ROOM_SETTINGS, hostPlayerId: 'p1', hostDisplayName: '조조' });
+
+    const withAi = rm.addAiPlayer({ roomId: room.roomId, requestingPlayerId: 'p1' });
+    expect(withAi.players).toHaveLength(2);
+    const ai = withAi.players.find((p) => p.playerId !== 'p1')!;
+    expect(ai.isAI).toBe(true);
+    expect(ai.status).toBe('connected');
+    expect(ai.isHost).toBe(false);
+
+    const started = rm.startRoom({ roomId: room.roomId, playerId: 'p1' });
+    expect(started.status).toBe('in_progress');
+  });
+
+  it('gives each added AI player a distinct display name', () => {
+    const rm = makeManager();
+    const room = rm.createRoom({ name: '방', settings: { ...DEFAULT_ROOM_SETTINGS, maxPlayers: 4 }, hostPlayerId: 'p1', hostDisplayName: '조조' });
+
+    rm.addAiPlayer({ roomId: room.roomId, requestingPlayerId: 'p1' });
+    const withTwoAi = rm.addAiPlayer({ roomId: room.roomId, requestingPlayerId: 'p1' });
+
+    const aiNames = withTwoAi.players.filter((p) => p.isAI).map((p) => p.displayName);
+    expect(new Set(aiNames).size).toBe(2);
+  });
+
+  it('rejects a non-host trying to add or remove an AI player', () => {
+    const rm = makeManager();
+    const room = rm.createRoom({ name: '방', settings: DEFAULT_ROOM_SETTINGS, hostPlayerId: 'p1', hostDisplayName: '조조' });
+    rm.joinRoom({ roomId: room.roomId, playerId: 'p2', displayName: '유비' });
+
+    expect(() => rm.addAiPlayer({ roomId: room.roomId, requestingPlayerId: 'p2' })).toThrow(RoomError);
+
+    const withAi = rm.addAiPlayer({ roomId: room.roomId, requestingPlayerId: 'p1' });
+    const aiPlayerId = withAi.players.find((p) => p.isAI)!.playerId;
+    expect(() => rm.removeAiPlayer({ roomId: room.roomId, requestingPlayerId: 'p2', aiPlayerId })).toThrow(RoomError);
+  });
+
+  it('rejects adding an AI player once the room is full', () => {
+    const rm = makeManager();
+    const room = rm.createRoom({ name: '방', settings: { ...DEFAULT_ROOM_SETTINGS, maxPlayers: 2 }, hostPlayerId: 'p1', hostDisplayName: '조조' });
+    rm.joinRoom({ roomId: room.roomId, playerId: 'p2', displayName: '유비' });
+
+    expect(() => rm.addAiPlayer({ roomId: room.roomId, requestingPlayerId: 'p1' })).toThrow(RoomError);
+  });
+
+  it('rejects adding an AI player once the game has started', () => {
+    const rm = makeManager();
+    const room = rm.createRoom({ name: '방', settings: DEFAULT_ROOM_SETTINGS, hostPlayerId: 'p1', hostDisplayName: '조조' });
+    rm.joinRoom({ roomId: room.roomId, playerId: 'p2', displayName: '유비' });
+    rm.startRoom({ roomId: room.roomId, playerId: 'p1' });
+
+    expect(() => rm.addAiPlayer({ roomId: room.roomId, requestingPlayerId: 'p1' })).toThrow(RoomError);
+  });
+
+  it('lets the host remove a previously-added AI player', () => {
+    const rm = makeManager();
+    const room = rm.createRoom({ name: '방', settings: DEFAULT_ROOM_SETTINGS, hostPlayerId: 'p1', hostDisplayName: '조조' });
+    const withAi = rm.addAiPlayer({ roomId: room.roomId, requestingPlayerId: 'p1' });
+    const aiPlayerId = withAi.players.find((p) => p.isAI)!.playerId;
+
+    const afterRemoval = rm.removeAiPlayer({ roomId: room.roomId, requestingPlayerId: 'p1', aiPlayerId });
+    expect(afterRemoval.players).toHaveLength(1);
+  });
+
+  it('rejects removing an AI player once the game has started', () => {
+    const rm = makeManager();
+    const room = rm.createRoom({ name: '방', settings: DEFAULT_ROOM_SETTINGS, hostPlayerId: 'p1', hostDisplayName: '조조' });
+    const withAi = rm.addAiPlayer({ roomId: room.roomId, requestingPlayerId: 'p1' });
+    const aiPlayerId = withAi.players.find((p) => p.isAI)!.playerId;
+    rm.startRoom({ roomId: room.roomId, playerId: 'p1' });
+
+    expect(() => rm.removeAiPlayer({ roomId: room.roomId, requestingPlayerId: 'p1', aiPlayerId })).toThrow(RoomError);
+  });
+
   it('rejects invalid settings', () => {
     const rm = makeManager();
     expect(() =>

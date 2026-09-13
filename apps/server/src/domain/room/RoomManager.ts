@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { ChatMessage, PlayerId, Room, RoomId, RoomPlayer, RoomSettings, RoomSummary } from '@sam-simul/shared';
-import { CHAT_LOG_MAX_MESSAGES, DISCONNECTED_PLAYER_GRACE_PERIOD_MS, MIN_PLAYERS_TO_START } from '@sam-simul/shared';
+import { AI_PLAYER_NAME_POOL, CHAT_LOG_MAX_MESSAGES, DISCONNECTED_PLAYER_GRACE_PERIOD_MS, MIN_PLAYERS_TO_START } from '@sam-simul/shared';
 import type { RoomRepository } from '../../persistence/RoomRepository.js';
 import { InMemoryRoomRepository } from '../../persistence/InMemoryRoomRepository.js';
 import { RoomError } from './RoomError.js';
@@ -88,6 +88,51 @@ export class RoomManager {
     return room;
   }
 
+  /** Host-only: adds a bot player that always counts as 'connected' and never disconnects. Lobby only. */
+  addAiPlayer(params: { roomId: RoomId; requestingPlayerId: PlayerId }): Room {
+    const room = this.requireRoom(params.roomId);
+    this.requireHost(room, params.requestingPlayerId);
+
+    if (room.status !== 'lobby') {
+      throw new RoomError('ROOM_ALREADY_STARTED', '게임이 시작된 후에는 AI를 추가할 수 없습니다.');
+    }
+    if (room.players.length >= room.settings.maxPlayers) {
+      throw new RoomError('ROOM_FULL', '방 정원이 가득 찼습니다.');
+    }
+
+    const usedNames = new Set(room.players.map((p) => p.displayName));
+    const displayName = AI_PLAYER_NAME_POOL.find((name) => !usedNames.has(name)) ?? `AI ${room.players.length + 1}`;
+
+    room.players.push({
+      playerId: `ai-${randomUUID()}`,
+      displayName,
+      isHost: false,
+      isAI: true,
+      status: 'connected',
+      joinedAt: Date.now(),
+    });
+
+    return room;
+  }
+
+  /** Host-only: removes a previously-added AI player. Lobby only -- once a game starts, GameSessionManager owns that AI's city, so removing it from the roster only would desync the two. */
+  removeAiPlayer(params: { roomId: RoomId; requestingPlayerId: PlayerId; aiPlayerId: PlayerId }): Room {
+    const room = this.requireRoom(params.roomId);
+    this.requireHost(room, params.requestingPlayerId);
+
+    if (room.status !== 'lobby') {
+      throw new RoomError('ROOM_ALREADY_STARTED', '게임이 시작된 후에는 AI를 제거할 수 없습니다.');
+    }
+
+    const index = room.players.findIndex((p) => p.playerId === params.aiPlayerId && p.isAI);
+    if (index === -1) {
+      throw new RoomError('NOT_IN_ROOM', 'AI 플레이어를 찾을 수 없습니다.');
+    }
+
+    room.players.splice(index, 1);
+    return room;
+  }
+
   rejoinRoom(params: { roomId: RoomId; playerId: PlayerId }): Room {
     const room = this.requireRoom(params.roomId);
     const player = room.players.find((p) => p.playerId === params.playerId);
@@ -167,7 +212,7 @@ export class RoomManager {
 
     const connectedCount = room.players.filter((p) => p.status === 'connected').length;
     if (connectedCount < MIN_PLAYERS_TO_START) {
-      throw new RoomError('NOT_ENOUGH_PLAYERS', `need at least ${MIN_PLAYERS_TO_START} connected players to start`);
+      throw new RoomError('NOT_ENOUGH_PLAYERS', `시작하려면 연결된 플레이어가 최소 ${MIN_PLAYERS_TO_START}명 필요합니다.`);
     }
 
     room.status = 'in_progress';

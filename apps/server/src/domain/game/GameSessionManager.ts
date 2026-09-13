@@ -12,8 +12,10 @@ import {
   STARTING_GRAIN_PER_TYPE,
   STARTING_MORALE,
   STARTING_POPULATION,
+  createSeededRng,
 } from '@sam-simul/shared';
 import { resolveTurn } from './GameEngine.js';
+import { decideAiOrder } from './ai.js';
 import type { AppServer } from '../../sockets/types.js';
 
 function startingWarehouse(): Warehouse {
@@ -30,6 +32,7 @@ interface GameSession {
   generalAppearanceBaseChance: number;
   disasterBaseChance: number;
   eventBaseChance: number;
+  aiPlayerIds: Set<PlayerId>;
   timer: NodeJS.Timeout;
 }
 
@@ -74,7 +77,7 @@ export class GameSessionManager {
       lastTurnLog: [],
     };
 
-    this.sessions.set(room.roomId, {
+    const session: GameSession = {
       state,
       orders: new Map(),
       turnTimeLimitSeconds: room.settings.turnTimeLimitSeconds,
@@ -82,8 +85,11 @@ export class GameSessionManager {
       generalAppearanceBaseChance: GENERAL_APPEARANCE_BASE_PROBABILITY[room.settings.generalAppearanceProbability],
       disasterBaseChance: DISASTER_FREQUENCY_PER_TURN_PROBABILITY[room.settings.disasterFrequency],
       eventBaseChance: EVENT_PROBABILITY_PER_TURN_PROBABILITY[room.settings.eventProbability],
+      aiPlayerIds: new Set(room.players.filter((p) => p.isAI).map((p) => p.playerId)),
       timer: this.scheduleResolution(room.roomId, room.settings.turnTimeLimitSeconds),
-    });
+    };
+    this.sessions.set(room.roomId, session);
+    this.fillAiOrders(session);
 
     this.broadcast(room.roomId);
   }
@@ -139,8 +145,25 @@ export class GameSessionManager {
     session.state = { ...nextState, turnEndsAt: Date.now() + session.turnTimeLimitSeconds * 1000 };
     session.orders = new Map();
     session.timer = this.scheduleResolution(roomId, session.turnTimeLimitSeconds);
+    this.fillAiOrders(session);
 
     this.broadcast(roomId);
+  }
+
+  /** Pre-fills this turn's orders for every AI-controlled city so a room only ever waits on its human players. */
+  private fillAiOrders(session: GameSession): void {
+    if (session.aiPlayerIds.size === 0) return;
+
+    for (const aiPlayerId of session.aiPlayerIds) {
+      const city = session.state.cities.find((c) => c.ownerId === aiPlayerId);
+      if (!city) continue;
+
+      const rng = createSeededRng(`${session.state.roomId}:${session.state.turnNumber}:ai:${aiPlayerId}`);
+      session.orders.set(aiPlayerId, decideAiOrder(city, ACTION_POINTS_PER_TURN, rng));
+      if (!session.state.submittedPlayerIds.includes(aiPlayerId)) {
+        session.state.submittedPlayerIds = [...session.state.submittedPlayerIds, aiPlayerId];
+      }
+    }
   }
 
   private scheduleResolution(roomId: RoomId, turnTimeLimitSeconds: number): NodeJS.Timeout {

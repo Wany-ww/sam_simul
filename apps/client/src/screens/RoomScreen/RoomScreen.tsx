@@ -56,7 +56,13 @@ export function RoomScreen() {
       </header>
       <div className="room-body">
         <div className="room-main">
-          <PlayerList players={currentRoom.players} hostPlayerId={currentRoom.hostPlayerId} />
+          <PlayerList
+            players={currentRoom.players}
+            hostPlayerId={currentRoom.hostPlayerId}
+            roomId={currentRoom.roomId}
+            isHost={isHost}
+            maxPlayers={currentRoom.settings.maxPlayers}
+          />
           <RoomSettingsPanel roomId={currentRoom.roomId} settings={currentRoom.settings} isHost={isHost} />
           <StartButton roomId={currentRoom.roomId} isHost={isHost} players={currentRoom.players} />
         </div>

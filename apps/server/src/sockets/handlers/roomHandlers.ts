@@ -91,6 +91,26 @@ export function registerRoomHandlers(io: AppServer, socket: AppSocket, roomManag
     }
   });
 
+  socket.on('room:addAi', ({ roomId }) => {
+    try {
+      const room = roomManager.addAiPlayer({ roomId, requestingPlayerId: socket.data.playerId });
+      io.to(room.roomId).emit('room:state', room);
+      broadcastLobbyList(io, roomManager);
+    } catch (err) {
+      handleError(socket, err);
+    }
+  });
+
+  socket.on('room:removeAi', ({ roomId, playerId }) => {
+    try {
+      const room = roomManager.removeAiPlayer({ roomId, requestingPlayerId: socket.data.playerId, aiPlayerId: playerId });
+      io.to(room.roomId).emit('room:state', room);
+      broadcastLobbyList(io, roomManager);
+    } catch (err) {
+      handleError(socket, err);
+    }
+  });
+
   socket.on('room:updateSettings', ({ roomId, settings }) => {
     try {
       const room = roomManager.updateSettings({ roomId, playerId: socket.data.playerId, settings });
