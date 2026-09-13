@@ -12,6 +12,16 @@ export function BattleReplay({ entry }: { entry: BattleLogEntry }) {
   const [dayIndex, setDayIndex] = useState(entry.dayLog.length - 1);
   const [playing, setPlaying] = useState(false);
 
+  // TurnLogPanel reuses this component instance across turns (same list
+  // index), but each turn's entry is a fresh battle with its own dayLog --
+  // possibly shorter than the previous turn's (e.g. an early rout). Without
+  // this, a dayIndex left over from a longer previous battle would index
+  // past the end of the new one and crash the render.
+  useEffect(() => {
+    setDayIndex(entry.dayLog.length - 1);
+    setPlaying(false);
+  }, [entry.dayLog.length, entry.outcome]);
+
   useEffect(() => {
     if (!playing) return;
     if (dayIndex >= entry.dayLog.length - 1) {
@@ -24,7 +34,8 @@ export function BattleReplay({ entry }: { entry: BattleLogEntry }) {
 
   if (entry.dayLog.length === 0) return null;
 
-  const snapshot = entry.dayLog[dayIndex];
+  const clampedDayIndex = Math.min(dayIndex, entry.dayLog.length - 1);
+  const snapshot = entry.dayLog[clampedDayIndex];
   const maxTroops = Math.max(entry.dayLog[0].attackerTroops, entry.dayLog[0].defenderTroops, 1);
   const myTroops = entry.role === 'attacker' ? snapshot.attackerTroops : snapshot.defenderTroops;
   const opponentTroops = entry.role === 'attacker' ? snapshot.defenderTroops : snapshot.attackerTroops;
@@ -63,14 +74,14 @@ export function BattleReplay({ entry }: { entry: BattleLogEntry }) {
           type="range"
           min={0}
           max={entry.dayLog.length - 1}
-          value={dayIndex}
+          value={clampedDayIndex}
           onChange={(e) => {
             setPlaying(false);
             setDayIndex(Number(e.target.value));
           }}
         />
         <span className="muted">
-          {dayIndex + 1}일차 / {entry.dayLog.length}일
+          {clampedDayIndex + 1}일차 / {entry.dayLog.length}일
         </span>
         <button onClick={replay} disabled={playing}>
           처음부터 재생
