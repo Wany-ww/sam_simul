@@ -184,6 +184,12 @@ export function OrderForm({
       <p className={overBudget ? 'error-text' : 'muted'}>
         사용 포인트: {spent} / {actionPointsPerTurn}
       </p>
+      <div className="ap-bar">
+        <div
+          className={`ap-bar-fill${overBudget ? ' ap-bar-over' : ''}`}
+          style={{ width: `${Math.min(100, (spent / actionPointsPerTurn) * 100)}%` }}
+        />
+      </div>
 
       <h3>농업 / 목축업</h3>
       <div className="settings-grid">
@@ -454,8 +460,8 @@ export function OrderForm({
         </>
       )}
 
-      <button onClick={submit} disabled={disabled || overBudget}>
-        {disabled ? '제출 완료' : '명령 제출'}
+      <button className={disabled ? 'submitted-button' : undefined} onClick={submit} disabled={disabled || overBudget}>
+        {disabled ? '✓ 제출 완료' : '명령 제출'}
       </button>
     </div>
   );
@@ -463,6 +469,6 @@ export function OrderForm({
 
 function armyLabel(army: Army): string {
   const locationName = getMapNode(army.currentNodeId)?.name ?? army.currentNodeId;
-  const summary = army.troops.map((t) => `${UNIT_TYPE_LABEL[t.unitType]} ${t.count}`).join(', ');
+  const summary = army.troops.map((t) => `${UNIT_TYPE_LABEL[t.unitType]} ${Math.round(t.count)}`).join(', ');
   return `${locationName}: ${summary}`;
 }

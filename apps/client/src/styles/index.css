@@ -52,11 +52,15 @@ h2 {
 h3 {
   font-size: 0.9rem;
   margin: 16px 0 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
   color: var(--muted);
 }
 
 h3:first-of-type {
   margin-top: 4px;
+  padding-top: 0;
+  border-top: none;
 }
 
 .card {
@@ -366,4 +370,40 @@ button:disabled {
 
 .chat-input-row input {
   flex: 1;
+}
+
+.ap-bar {
+  height: 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+.ap-bar-fill {
+  height: 100%;
+  background: var(--accent);
+  transition: width 0.2s ease;
+}
+
+.ap-bar-over {
+  background: var(--error);
+}
+
+.submitted-button {
+  background: #3a5a3a;
+  color: #cfeccf;
+  cursor: default;
+}
+
+.submitted-button:disabled {
+  background: #3a5a3a;
+  color: #cfeccf;
+}
+
+.submitted-badge {
+  margin-left: 8px;
+  color: #7fd88f;
+  font-weight: 600;
 }

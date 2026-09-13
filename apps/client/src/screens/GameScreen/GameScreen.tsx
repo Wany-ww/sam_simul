@@ -57,8 +57,9 @@ export function GameScreen() {
     <div className="screen game-screen">
       <header className="room-header">
         <h1>턴 {gameState.turnNumber}</h1>
-        <span className="muted">
+        <span className={secondsLeft <= 30 ? 'error-text' : 'muted'}>
           남은 시간: {secondsLeft}초 · 제출 완료 {submittedCount}/{totalCount}명
+          {hasSubmittedThisTurn && <span className="submitted-badge">✓ 제출함</span>}
         </span>
       </header>
 

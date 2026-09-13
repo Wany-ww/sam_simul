@@ -12,7 +12,7 @@ export function ArmiesPanel({ armies }: { armies: Army[] }) {
       <ul className="settings-readout">
         {armies.map((army) => {
           const currentName = getMapNode(army.currentNodeId)?.name ?? army.currentNodeId;
-          const troopSummary = army.troops.map((t) => `${UNIT_TYPE_LABEL[t.unitType]} ${t.count}명`).join(', ');
+          const troopSummary = army.troops.map((t) => `${UNIT_TYPE_LABEL[t.unitType]} ${Math.round(t.count)}명`).join(', ');
           const status = army.destinationNodeId
             ? `${currentName}에서 ${getMapNode(army.destinationNodeId)?.name ?? army.destinationNodeId}(으)로 행군 중 (남은 일수: ${army.daysRemaining})`
             : `${currentName}에 주둔 중`;

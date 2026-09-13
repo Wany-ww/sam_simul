@@ -4,7 +4,9 @@ import { RESOURCE_LABEL, REGIONS, UNIT_TYPE_LABEL, getMapNode } from '@sam-simul
 const DOMAIN_LABEL: Record<EffectDomain, string> = { agriculture: '농업', animalHusbandry: '목축업', commerce: '상업', industry: '공업' };
 
 export function CityOverview({ city }: { city: GameCity }) {
-  const stockedResources = (Object.entries(city.warehouse) as [ResourceType, number][]).filter(([, amount]) => amount > 0.01);
+  // Threshold matches the whole-number rounding used for display below --
+  // otherwise a resource that would round to "0" still shows up in the list.
+  const stockedResources = (Object.entries(city.warehouse) as [ResourceType, number][]).filter(([, amount]) => amount >= 0.5);
   const node = getMapNode(city.nodeId);
   const region = node ? REGIONS[node.region] : undefined;
 
@@ -64,7 +66,7 @@ export function CityOverview({ city }: { city: GameCity }) {
         <ul className="settings-readout">
           {city.troops.map((t) => (
             <li key={t.unitType}>
-              {UNIT_TYPE_LABEL[t.unitType]}: {t.count}명 (훈련도 {round(t.trainingLevel)})
+              {UNIT_TYPE_LABEL[t.unitType]}: {Math.round(t.count)}명 (훈련도 {round(t.trainingLevel)})
             </li>
           ))}
         </ul>
@@ -73,6 +75,9 @@ export function CityOverview({ city }: { city: GameCity }) {
   );
 }
 
+// Facility/warehouse/training figures are inherently fractional (split
+// production formulas, decay, half-point training levels), but showing that
+// precision to the player is just noise -- round to whole numbers for display.
 function round(value: number): number {
-  return Math.round(value * 100) / 100;
+  return Math.round(value);
 }

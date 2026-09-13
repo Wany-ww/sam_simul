@@ -80,6 +80,17 @@ describe('applyCasualties', () => {
     expect(totalTroopCount(troops)).toBe(0);
     expect(actualCasualties).toBe(10);
   });
+
+  it('keeps sub-1 daily casualties fractional instead of rounding them away to zero', () => {
+    // A weak unit (e.g. engineers in a field battle) can deal well under 1
+    // casualty per day. Rounding that down to 0 every day -- the previous
+    // behavior -- meant such battles could never actually grind a side down;
+    // only morale reaching 0 ever ended them. The fraction must survive so it
+    // can accumulate into a real loss over several days.
+    const { troops, actualCasualties } = applyCasualties([{ unitType: 'engineer', count: 10, trainingLevel: 0 }], 0.4);
+    expect(actualCasualties).toBeCloseTo(0.4);
+    expect(troops[0].count).toBeCloseTo(9.6);
+  });
 });
 
 describe('resolveCombatDay', () => {
@@ -149,6 +160,18 @@ describe('resolveBattle', () => {
     const result = resolveBattle(evenlyMatched(), evenlyMatched(), 1, createSeededRng('short'));
     expect(result.outcome).toBe('ongoing');
     expect(result.daysFought).toBe(1);
+  });
+
+  it('lets weak units grind each other down over many days instead of never taking casualties', () => {
+    // Two mutually-defending engineer squads (low UNIT_COMBAT_VALUE) deal
+    // well under 1 casualty per day each. Before fractional casualties were
+    // carried forward, this fight could run forever without a single troop
+    // ever dying -- only morale hitting 0 would end it, regardless of how
+    // many days passed.
+    const evenlyMatchedEngineers = () => makeSide({ troops: [{ unitType: 'engineer', count: 10, trainingLevel: 0 }] });
+    const result = resolveBattle(evenlyMatchedEngineers(), evenlyMatchedEngineers(), 60, createSeededRng('attrition'));
+    expect(result.totalAttackerCasualties).toBeGreaterThan(0);
+    expect(result.totalDefenderCasualties).toBeGreaterThan(0);
   });
 
   it('records one day-by-day snapshot per day fought, ending with the same totals as the final result', () => {

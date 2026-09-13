@@ -56,7 +56,15 @@ export function computeCombatPower(side: CombatSide, isSiegeAttacker: boolean): 
   return power;
 }
 
-/** Removes `casualties` troops from a stack list, proportionally across stacks by their current share of the total. */
+/**
+ * Removes `casualties` troops from a stack list, proportionally across stacks
+ * by their current share of the total. Losses are kept fractional rather than
+ * rounded per day: a weak unit's daily casualties are often well under 1, and
+ * rounding that down to 0 every day meant such battles could never actually
+ * grind a side down -- only morale hitting 0 ever ended them. Carrying the
+ * fraction forward lets it accumulate into a real loss over several days.
+ * Display layers are expected to round for presentation.
+ */
 export function applyCasualties(troops: TroopStack[], casualties: number): { troops: TroopStack[]; actualCasualties: number } {
   const total = totalTroopCount(troops);
   if (total <= 0 || casualties <= 0) return { troops, actualCasualties: 0 };
@@ -65,10 +73,10 @@ export function applyCasualties(troops: TroopStack[], casualties: number): { tro
   const nextTroops = troops
     .map((stack) => {
       const share = stack.count / total;
-      const loss = Math.round(toRemove * share);
+      const loss = toRemove * share;
       return { ...stack, count: Math.max(0, stack.count - loss) };
     })
-    .filter((stack) => stack.count > 0);
+    .filter((stack) => stack.count > 0.001);
 
   const actualCasualties = total - totalTroopCount(nextTroops);
   return { troops: nextTroops, actualCasualties };
