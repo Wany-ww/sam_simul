@@ -175,16 +175,40 @@ button:disabled {
   }
 }
 
-.game-body {
+/* Map and order form side by side so both are visible at once -- the order
+   form scrolls within its own max-height instead of pushing the map down. */
+.game-primary {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1.4fr 1fr;
   gap: 16px;
   align-items: start;
 }
 
-@media (max-width: 800px) {
-  .game-body {
+.order-form-scroll {
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.order-form-scroll .card {
+  margin-bottom: 0;
+}
+
+.game-secondary {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 16px;
+  align-items: start;
+  margin-top: 16px;
+}
+
+@media (max-width: 900px) {
+  .game-primary {
     grid-template-columns: 1fr;
+  }
+
+  .order-form-scroll {
+    max-height: none;
+    overflow-y: visible;
   }
 }
 
@@ -293,6 +317,7 @@ button:disabled {
 .map-svg {
   width: 100%;
   height: auto;
+  max-height: 80vh;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
@@ -303,9 +328,23 @@ button:disabled {
   stroke-width: 2;
 }
 
+.map-edge-river {
+  stroke: #3d6fa3;
+  stroke-width: 3;
+  stroke-dasharray: 1 4;
+  stroke-linecap: round;
+}
+
 .map-node-label {
+  fill: var(--muted);
+  font-size: 7px;
+  pointer-events: none;
+}
+
+.map-node-label-city {
   fill: var(--text);
-  font-size: 11px;
+  font-size: 10px;
+  font-weight: 700;
 }
 
 .map-army-marker {

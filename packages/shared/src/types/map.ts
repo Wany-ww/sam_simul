@@ -8,7 +8,21 @@ export type MapNodeType = 'city' | 'battlefield';
 // vs procedurally-sized" open question): a room's mapSize setting scales
 // travel time via MAP_SIZE_TRAVEL_DAY_MULTIPLIER, it never changes which
 // nodes exist.
-export type RegionId = 'siLi' | 'jizhou' | 'bingzhou' | 'xiliang' | 'yanzhou' | 'yuzhou' | 'jingzhou' | 'yizhou' | 'jiangdong';
+// The 13 Later Han provinces (후한 13주), per the 후한서 군국지 reference map.
+export type RegionId =
+  | 'siLi'
+  | 'yuzhou'
+  | 'yanzhou'
+  | 'qingzhou'
+  | 'xuzhou'
+  | 'yangzhou'
+  | 'jingzhou'
+  | 'yizhou'
+  | 'liangzhou'
+  | 'bingzhou'
+  | 'jizhou'
+  | 'youzhou'
+  | 'jiaozhou';
 
 export interface MapNode {
   nodeId: MapNodeId;
@@ -24,6 +38,7 @@ export interface MapEdge {
   from: MapNodeId;
   to: MapNodeId;
   baseDistanceDays: number; // at mapSize "medium" (multiplier 1)
+  kind?: 'road' | 'river'; // river crossings are purely a visual/flavor distinction on the client map; movement math is identical either way
 }
 
 export interface Region {

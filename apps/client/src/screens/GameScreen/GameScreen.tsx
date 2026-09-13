@@ -65,16 +65,20 @@ export function GameScreen() {
 
       <TurnLogPanel entry={myLastTurnLog} />
 
-      <MapView cities={gameState.cities} armies={gameState.armies} players={roomPlayers} myPlayerId={playerId} />
+      {myCity && (
+        <div className="game-primary">
+          <MapView cities={gameState.cities} armies={gameState.armies} players={roomPlayers} myPlayerId={playerId} />
+          <div className="order-form-scroll">
+            <OrderForm roomId={gameState.roomId} city={myCity} armies={myArmies} actionPointsPerTurn={gameState.actionPointsPerTurn} disabled={hasSubmittedThisTurn} onSubmit={markSubmitted} />
+          </div>
+        </div>
+      )}
 
       {myCity && (
-        <div className="game-body">
-          <div>
-            <CityOverview city={myCity} />
-            <ArmiesPanel armies={myArmies} />
-            <GeneralsPanel generals={myCity.generals} />
-          </div>
-          <OrderForm roomId={gameState.roomId} city={myCity} armies={myArmies} actionPointsPerTurn={gameState.actionPointsPerTurn} disabled={hasSubmittedThisTurn} onSubmit={markSubmitted} />
+        <div className="game-secondary">
+          <CityOverview city={myCity} />
+          <ArmiesPanel armies={myArmies} />
+          <GeneralsPanel generals={myCity.generals} />
         </div>
       )}
     </div>

@@ -15,12 +15,24 @@ export function MapView({ cities, armies, players, myPlayerId }: { cities: GameC
   return (
     <div className="card">
       <h2>지도</h2>
-      <svg viewBox="0 0 700 600" className="map-svg" role="img" aria-label="삼국지 지도">
+      <svg viewBox="0 0 1150 1050" className="map-svg" role="img" aria-label="삼국지 지도">
         {MAP_EDGES.map((edge) => {
           const from = getMapNode(edge.from);
           const to = getMapNode(edge.to);
           if (!from || !to) return null;
-          return <line key={`${edge.from}-${edge.to}`} x1={from.x} y1={from.y} x2={to.x} y2={to.y} className="map-edge" />;
+          const isRiver = edge.kind === 'river';
+          return (
+            <line
+              key={`${edge.from}-${edge.to}`}
+              x1={from.x}
+              y1={from.y}
+              x2={to.x}
+              y2={to.y}
+              className={isRiver ? 'map-edge map-edge-river' : 'map-edge'}
+            >
+              {isRiver && <title>{`${from.name} — ${to.name} (수로)`}</title>}
+            </line>
+          );
         })}
 
         {armies.map((army) => {
@@ -44,7 +56,7 @@ export function MapView({ cities, armies, players, myPlayerId }: { cities: GameC
         {MAP_NODES.map((node) => {
           const city = cityByNodeId.get(node.nodeId);
           const isMine = city?.ownerId === myPlayerId;
-          const radius = node.type === 'city' ? 14 : 8;
+          const radius = node.type === 'city' ? 13 : 5;
           const fill = city ? ownerColor(city.ownerId) : 'var(--map-neutral)';
           const ownerName = city ? (displayNameByPlayerId.get(city.ownerId) ?? city.ownerId) : undefined;
           const tooltip = city ? `${node.name} — ${ownerName}${isMine ? ' (나)' : ''}, 인구 ${Math.round(city.population)}` : node.name;
@@ -60,7 +72,7 @@ export function MapView({ cities, armies, players, myPlayerId }: { cities: GameC
                   <title>{tooltip}</title>
                 </rect>
               )}
-              <text x={node.x} y={node.y + radius + 14} textAnchor="middle" className="map-node-label">
+              <text x={node.x} y={node.y + radius + 10} textAnchor="middle" className={node.type === 'city' ? 'map-node-label map-node-label-city' : 'map-node-label'}>
                 {node.name}
               </text>
             </g>
